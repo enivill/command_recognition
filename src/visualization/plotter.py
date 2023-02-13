@@ -63,7 +63,7 @@ class Plotter:
         row: int = which row to place the plot, default 1
         col: int = which col to place the plot, default 1
 
-        usage:
+        how to use:
             fig = Plotter(rows=1, cols=2)
             fig.plot_audio_waves('bed', file_name_bed, y_bed, sample_rate_bed, 0, 0)
             fig.plot_audio_wave('happy', file_name_happy, y_happy, sample_rate_happy, 0, 1)
@@ -76,17 +76,28 @@ class Plotter:
                                xlabel="Time",
                                ylabel="Amplitude")
 
-    def plot_fourier_spectrogram(self,
-                                 audio_title: str,
-                                 file_name: str,
-                                 data: np.ndarray,
-                                 n: int,
-                                 wl: int,
-                                 hl: int,
-                                 row: int = 1,
-                                 col: int = 1
-                                 ):
-        # fft = 128    # this corresponds to 0.16 ms with at a sample rate of 8000 Hz --> 128/8000 = 0.016
+    def stft(self,
+             audio_title: str,
+             file_name: str,
+             data: np.ndarray,
+             n: int,
+             wl: int,
+             hl: int,
+             row: int = 1,
+             col: int = 1
+             ):
+        """
+        :param audio_title:
+        :param file_name:
+        :param data:
+        :param n:
+        :param wl:
+        :param hl:
+        :param row:
+        :param col:
+        :return:
+        """
+        # fft = 128    # this corresponds to 0.16 ms with a sample rate of 8000 Hz --> 128/8000 = 0.016
         # win_len = fft
         # hl = win_len//2
 
@@ -120,19 +131,18 @@ class Plotter:
         if row == 0 and col == 0:
             self.fig.colorbar(mappable=img, ax=self.axs, format="%+2.f dB")
 
-    def plot_mel_spectrogram(self,
-                             audio_title: str,
-                             file_name: str,
-                             data: np.ndarray,
-                             n: int,
-                             sr: int,
-                             wl: int,
-                             hl: int,
-                             n_mels: int,
-                             row: int = 1,
-                             col: int = 1,
-                             mfcc: bool = False
-                             ):
+    def mel(self,
+            audio_title: str,
+            file_name: str,
+            data: np.ndarray,
+            n: int,
+            sr: int,
+            wl: int,
+            hl: int,
+            n_mels: int,
+            row: int = 1,
+            col: int = 1
+            ):
         # n_fft = 128    # this corresponds to 0.16 ms with at a sample rate of 8000 Hz --> 128/8000 = 0.016
 
         mel_spectrogram = librosa.feature.melspectrogram(
@@ -145,45 +155,68 @@ class Plotter:
         )
 
         mel_spectrogram_decibel = librosa.power_to_db(mel_spectrogram, ref=np.max)
-        print(mel_spectrogram.shape)
-        print(mel_spectrogram_decibel.shape)
+        # print(mel_spectrogram.shape)
+        # print(mel_spectrogram_decibel.shape)
 
-        if mfcc:
-            mfccs = librosa.feature.mfcc(
-                S=mel_spectrogram_decibel,
-                # n_mfcc=int((2 / 3) * n_mels)
-                n_mfcc=16
-            )
-            img = librosa.display.specshow(
-                data=mfccs,
-                sr=sr,
-                hop_length=hl,
-                n_fft=n,
-                win_length=wl,
-                x_axis='time',
-                ax=self.axs[row, col]
-            )
-            self.axs[row, col].set(title=f'Word: {audio_title}\nFile name: {file_name}',
-                                   xlabel="Time")
-            if row == 0 and col == 0:
-                self.fig.colorbar(mappable=img, ax=self.axs)
+        # spectrogram
+        img = librosa.display.specshow(
+            data=mel_spectrogram_decibel,
+            sr=sr,
+            hop_length=hl,
+            n_fft=n,
+            win_length=wl,
+            x_axis='time',
+            y_axis='mel',
+            ax=self.axs[row, col]
+        )
+        self.axs[row, col].set(title=f'Word: {audio_title}\nFile name: {file_name}',
+                               xlabel="Time",
+                               ylabel="Hz")
+        if row == 0 and col == 0:
+            self.fig.colorbar(mappable=img, ax=self.axs, format="%+2.f dB")
 
-        else:
-            # spectrogram
-            img = librosa.display.specshow(
-                data=mel_spectrogram_decibel,
-                sr=sr,
-                hop_length=hl,
-                n_fft=n,
-                win_length=wl,
-                x_axis='time',
-                y_axis='mel',
-                ax=self.axs[row, col]
-            )
-            self.axs[row, col].set(title=f'Word: {audio_title}\nFile name: {file_name}',
-                                   xlabel="Time",
-                                   ylabel="Hz")
-            if row == 0 and col == 0:
-                self.fig.colorbar(mappable=img, ax=self.axs, format="%+2.f dB")
+    def mfcc(self,
+             audio_title: str,
+             file_name: str,
+             data: np.ndarray,
+             n: int,
+             sr: int,
+             wl: int,
+             hl: int,
+             n_mels: int,
+             row: int = 1,
+             col: int = 1,
+             ):
+        # n_fft = 128    # this corresponds to 0.16 ms with at a sample rate of 8000 Hz --> 128/8000 = 0.016
 
+        mel_spectrogram = librosa.feature.melspectrogram(
+            y=data,
+            sr=sr,
+            n_fft=n,
+            hop_length=hl,
+            win_length=wl,
+            n_mels=n_mels
+        )
 
+        mel_spectrogram_decibel = librosa.power_to_db(mel_spectrogram, ref=np.max)
+        # print(mel_spectrogram.shape)
+        # print(mel_spectrogram_decibel.shape)
+
+        mfccs = librosa.feature.mfcc(
+            S=mel_spectrogram_decibel,
+            # n_mfcc=int((2 / 3) * n_mels)
+            n_mfcc=12
+        )
+        img = librosa.display.specshow(
+            data=mfccs,
+            sr=sr,
+            hop_length=hl,
+            n_fft=n,
+            win_length=wl,
+            x_axis='time',
+            ax=self.axs[row, col]
+        )
+        self.axs[row, col].set(title=f'Word: {audio_title}\nFile name: {file_name}',
+                               xlabel="Time")
+        if row == 0 and col == 0:
+            self.fig.colorbar(mappable=img, ax=self.axs)
