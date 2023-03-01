@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import soundfile as sf
 import os
@@ -47,19 +48,19 @@ def save_audio_report(
     sf.write(f'reports/sound/{path}', data, sample_rate)
 
 
-def plot_data_and_save(_type: str, words_no: int = None, files_no: int = None):
+def plot_data_and_save(img_type: str, words_no: int = None, files_no: int = None):
     """
     create plots with Plotter from the sample data
     save the plots to /reports directory
     you can change the audio file's sample rate 'sr_load'
     :param words_no: how many words from data, default None - till the end of the list
     :param files_no: how many files from word dictionary, default None - till the end of the list
-    :param _type: stft, mel, mfcc or wave
+    :param img_type: stft, mel, mfcc or wave
     :return:
     """
     type_path = {'stft': 'spectrograms', 'mel': 'mel_spectrograms', 'mfcc': 'mfcc_spectrograms', 'wave': 'wav_plot'}
     try:
-        assert _type in type_path.keys(), "Wrong type. Please use one of these: wave, stft, mel, mfcc."
+        assert img_type in type_path.keys(), "Wrong type. Please use one of these: wave, stft, mel, mfcc."
     except Exception as e:
         print(e)
         return
@@ -97,13 +98,13 @@ def plot_data_and_save(_type: str, words_no: int = None, files_no: int = None):
             if idx == 2:
                 col = 0
                 row += 1
-            if _type == 'stft':
+            if img_type == 'stft':
                 fig.stft(word, filename_word[idx], y, n_fft, window_length, hop_length, row, col)
-            elif _type == 'mel':
+            elif img_type == 'mel':
                 n_mels = 40
                 fig.mel(word, filename_word[idx], y, n_fft, sr_load, window_length, hop_length, n_mels,
                         row, col)
-            elif _type == 'mfcc':
+            elif img_type == 'mfcc':
                 n_mels = 40
                 fig.mfcc(word, filename_word[idx], y, n_fft, sr_load, window_length, hop_length, n_mels,
                          row, col)
@@ -112,18 +113,22 @@ def plot_data_and_save(_type: str, words_no: int = None, files_no: int = None):
             col += 1
 
         # SAVE figure
-        if _type == '':
+        plt.axis('off')
+        if img_type == 'wave':
             fig.fig.savefig(
-                f'reports/figures/{type_path[_type]}/{word}_sr{sr_load}.svg',
+                f'reports/figures/{type_path[img_type]}/{word}_sr{sr_load}.svg',
                 format='svg', dpi=1200, bbox_inches='tight')
         else:
             fig.fig.savefig(
-                f'reports/figures/{type_path[_type]}/{word}_sr{sr_load}_n{n_fft}_wl{window_length}_hl{hop_length}.svg',
-                format='svg', dpi=1200, bbox_inches='tight')
+                f'reports/figures/{type_path[img_type]}/{word}_sr{sr_load}_n{n_fft}_wl{window_length}_hl{hop_length}.svg',
+                format='svg', dpi=1200, bbox_inches='tight', pad_inches=0)
 
-        fig.fig.show()
+        # fig.fig.show()
 
         # clear lists
         y_word.clear()
         sr_word.clear()
         filename_word.clear()
+
+
+

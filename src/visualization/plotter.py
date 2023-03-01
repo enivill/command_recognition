@@ -83,8 +83,9 @@ class Plotter:
              n: int,
              wl: int,
              hl: int,
-             row: int = 1,
-             col: int = 1
+             row: int = 0,
+             col: int = 0,
+             feature_extr = False
              ):
         """
         :param audio_title:
@@ -125,11 +126,12 @@ class Plotter:
             y_axis='hz',
             ax=self.axs[row, col]
         )
-        self.axs[row, col].set(title=f'Word: {audio_title}\nFile name: {file_name}',
-                               xlabel="Počet rámcov",
-                               ylabel="Hz")
-        if row == 0 and col == 0:
-            self.fig.colorbar(mappable=img, ax=self.axs, format="%+2.f dB")
+        if not feature_extr:
+            self.axs[row, col].set(title=f'Word: {audio_title}\nFile name: {file_name}',
+                                   xlabel="Počet rámcov",
+                                   ylabel="Hz")
+            if row == 0 and col == 0:
+                self.fig.colorbar(mappable=img, ax=self.axs, format="%+2.f dB")
 
     def mel(self,
             audio_title: str,
@@ -140,8 +142,9 @@ class Plotter:
             wl: int,
             hl: int,
             n_mels: int,
-            row: int = 1,
-            col: int = 1
+            row: int = 0,
+            col: int = 0,
+            feature_extr = False
             ):
         # n_fft = 128    # this corresponds to 0.16 ms with at a sample rate of 8000 Hz --> 128/8000 = 0.016
 
@@ -169,11 +172,13 @@ class Plotter:
             y_axis='mel',
             ax=self.axs[row, col]
         )
-        self.axs[row, col].set(title=f'Word: {audio_title}\nFile name: {file_name}',
-                               xlabel="Time",
-                               ylabel="Hz")
-        if row == 0 and col == 0:
-            self.fig.colorbar(mappable=img, ax=self.axs, format="%+2.f dB")
+
+        if not feature_extr:
+            self.axs[row, col].set(title=f'Word: {audio_title}\nFile name: {file_name}',
+                                   xlabel="Time",
+                                   ylabel="Hz")
+            if row == 0 and col == 0:
+                self.fig.colorbar(mappable=img, ax=self.axs, format="%+2.f dB")
 
     def mfcc(self,
              audio_title: str,
@@ -184,26 +189,34 @@ class Plotter:
              wl: int,
              hl: int,
              n_mels: int,
-             row: int = 1,
-             col: int = 1,
+             row: int = 0,
+             col: int = 0,
+             feature_extr = False
              ):
         # n_fft = 128    # this corresponds to 0.16 ms with at a sample rate of 8000 Hz --> 128/8000 = 0.016
 
-        mel_spectrogram = librosa.feature.melspectrogram(
-            y=data,
-            sr=sr,
-            n_fft=n,
-            hop_length=hl,
-            win_length=wl,
-            n_mels=n_mels
-        )
-
-        mel_spectrogram_decibel = librosa.power_to_db(mel_spectrogram, ref=np.max)
-        # print(mel_spectrogram.shape)
-        # print(mel_spectrogram_decibel.shape)
-
+#TODO first time i generated melspectrogram, then converted from ampl to db and finally made mfcc...
+# but then i realized it can be done in one step, with the mfcc function with more parameters.
+        # mel_spectrogram = librosa.feature.melspectrogram(
+        #     y=data,
+        #     sr=sr,
+        #     n_fft=n,
+        #     hop_length=hl,
+        #     win_length=wl,
+        #     n_mels=n_mels
+        # )
+        #
+        # mel_spectrogram_decibel = librosa.power_to_db(mel_spectrogram, ref=np.max)
+        # # print(mel_spectrogram.shape)
+        # # print(mel_spectrogram_decibel.shape)
+        #
+        # mfccs = librosa.feature.mfcc(
+        #     S=mel_spectrogram_decibel,
+        #     # n_mfcc=int((2 / 3) * n_mels)
+        #     n_mfcc=12
+        # )
         mfccs = librosa.feature.mfcc(
-            S=mel_spectrogram_decibel,
+            y=data, sr=sr, hop_length=hl, win_length=wl, n_mels=n_mels, n_fft=n,
             # n_mfcc=int((2 / 3) * n_mels)
             n_mfcc=12
         )
@@ -216,7 +229,9 @@ class Plotter:
             x_axis='time',
             ax=self.axs[row, col]
         )
-        self.axs[row, col].set(title=f'Word: {audio_title}\nFile name: {file_name}',
-                               xlabel="Time")
-        if row == 0 and col == 0:
-            self.fig.colorbar(mappable=img, ax=self.axs)
+
+        if not feature_extr:
+            self.axs[row, col].set(title=f'Word: {audio_title}\nFile name: {file_name}',
+                                   xlabel="Time")
+            if row == 0 and col == 0:
+                self.fig.colorbar(mappable=img, ax=self.axs)
