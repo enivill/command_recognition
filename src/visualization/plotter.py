@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import librosa
 import librosa.display
+import librosa.feature
 import numpy as np
 
 SMALL_SIZE = 10

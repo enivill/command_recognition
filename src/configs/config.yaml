@@ -1,0 +1,39 @@
+
+# INITIAL SETTINGS
+raw_data_directory: data/external/speech_commands_v0.01/
+#classes: ['bed', 'bird', 'cat', 'dog', 'down', 'eight', 'five', 'four', 'go', 'happy', 'house', 'left', 'marvin', 'nine', 'no', 'off', 'on', 'one', 'right', 'seven', 'sheila', 'six', 'stop', 'three', 'tree', 'two', 'up', 'wow', 'yes', 'zero']
+
+# AUDIO LENGTH
+delete_outlier: True
+duration_limit: 1.0
+
+
+# SPLIT DATA
+dataset_root: data/datasets/without_outliers/
+dataset_name:
+  train: train.txt
+  val: val.txt
+  test: test.txt
+
+# MAKE PAIRS
+word_per_class_train: 500 # use null if you want to load all the data
+excluded_classes: # _background_noise_ is automatically excluded
+  train: []
+  val: []
+  test: []
+order: ['train', 'val', 'test']  # do not change
+percentage:
+  train: 60
+  val: 20
+  test: 20
+pairs_root: data/pairs/without_outliers/
+pairs_name:
+  train: train_pairs.csv
+  val: val_pairs.csv
+  test: test_pairs.csv
+
+# TRAIN
+
+
+
+
