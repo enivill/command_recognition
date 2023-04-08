@@ -3,13 +3,13 @@ import re
 import hashlib
 import yaml
 from tqdm import tqdm
-from src.helper import load_config
+from src.utils import config as my_config
 from src.helper import get_audio_duration
 
 MAX_NUM_WAVS_PER_CLASS = 2 ** 27 - 1  # ~134M
 
 
-def split_data(config_file: str):
+def split_data():
     """
     Splits data into training, validation and testing set. You can edit the percentage
     and other configurations in the config.yaml file
@@ -19,13 +19,13 @@ def split_data(config_file: str):
     :param config_file:  path to config yaml file
     :return:
     """
-    config = load_config(config_file)
+    config = my_config.get_config()
     # -- CONFIG values --
     dataset_root = f"{config['dataset_root']}"
     train_set_name = config['dataset_name']['train']
     val_set_name = config['dataset_name']['val']
     test_set_name = config['dataset_name']['test']
-    raw_data_directory = config['raw_data_directory']
+    raw_data_root = config['raw_data_root']
     duration_limit = config['duration_limit']
     delete_outliers_bool = config['delete_outlier']
 
@@ -35,14 +35,14 @@ def split_data(config_file: str):
     audio_duration = -1
 
     print(' ----- SPLIT DATA -----')
-    for dirs in os.scandir(raw_data_directory):
+    for dirs in os.scandir(raw_data_root):
         if dirs.is_dir() and dirs.name != "_background_noise_":
             print(f"Class: {dirs.name}")
             for file in tqdm(os.listdir(dirs)):
                 if delete_outliers_bool:
-                    audio_duration = get_audio_duration(f"{raw_data_directory}{dirs.name}/{file}")
+                    audio_duration = get_audio_duration(f"{raw_data_root}{dirs.name}/{file}")
                 if audio_duration >= duration_limit or audio_duration == -1:
-                    set_name = which_set(file, config_file)
+                    set_name = which_set(file)
                     # file_path = os.path.join(os.path.basename(dirs), os.path.basename(file)).replace("\\", "/")
                     file_path = f"{dirs.name}/{file}"
                     if set_name == 'training':
@@ -71,7 +71,7 @@ def split_data(config_file: str):
     print(f"Done. Datasets saved to {dataset_root} directory.")
 
 
-def which_set(filename: str, config_file: str) -> str:
+def which_set(filename: str) -> str:
     """Determines which data partition the file should belong to.
 
     We want to keep files in the same training, validation, or testing sets even
@@ -96,7 +96,7 @@ def which_set(filename: str, config_file: str) -> str:
     String, one of 'training', 'validation', or 'testing'.
     """
 
-    config = load_config(config_file)
+    config = my_config.get_config()
     # -- CONFIG values --
     val_percentage = config['percentage']['val']
     test_percentage = config['percentage']['test']

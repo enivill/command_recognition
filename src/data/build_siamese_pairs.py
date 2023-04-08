@@ -5,12 +5,12 @@ import numpy as np
 import pandas as pd
 import os
 from tqdm import tqdm
-from src.helper import load_config
 from collections import Counter
 import yaml
+from src.utils import config as my_config
 
 
-def make_pairs(config_file: str) -> None:
+def make_pairs() -> None:
     """
     This function is useful for building image pairs for siamese network
     It reads datasets, calls function to reduce its size if requested (word_per_class_train)
@@ -18,9 +18,9 @@ def make_pairs(config_file: str) -> None:
     You can edit the configurations in the config.yaml file
     :return:
     """
-    config = load_config(config_file)
+    config = my_config.get_config()
     # -- CONFIG values --
-    data_path = config['raw_data_directory']
+    data_path = config['raw_data_root']
     dataset_root = config['dataset_root']
     dataset_name_dict = config['dataset_name']
     excluded_classes_dict = config['excluded_classes']
