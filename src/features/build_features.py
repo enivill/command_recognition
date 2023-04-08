@@ -6,7 +6,7 @@ from tqdm import tqdm
 import numpy as np
 from src.utils import config as my_config
 from sklearn.preprocessing import StandardScaler
-
+import os
 
 
 # TODO
@@ -179,7 +179,10 @@ def plot_mel(y: np.ndarray):
     )
     title = f"sr{config['sample_rate']}_hl{config['hop_length']}_nfft{config['n_fft']}_wl{config['window_length']}_mels{config['n_mels']}_mfcc{config['n_mfcc']}_fmin{config['f_min']}_fmax{config['f_max']}_w{y.shape[1]}_h{y.shape[0]}"
     plt.title(title)
-    plt.savefig(f"reports/figures/mel_spectrograms/{title}.png")
+    save_path = 'reports/figures/mel_spectrograms/'
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
+    plt.savefig(f"{save_path}{title}.png")
     plt.close(fig)
 
 
@@ -205,7 +208,10 @@ def plot_mfcc(mfccs: np.ndarray, norm: bool=False):
 
     title = f"sr{config['sample_rate']}_hl{config['hop_length']}_nfft{config['n_fft']}_wl{config['window_length']}_mels{config['n_mels']}_mfcc{config['n_mfcc']}_fmin{config['f_min']}_fmax{config['f_max']}_w{mfccs.shape[1]}_h{mfccs.shape[0]}"
     plt.title(title)
-    plt.savefig(f"reports/figures/mfcc_spectrograms/{title}.png")
+    save_path = 'reports/figures/mfcc_spectrograms/'
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
+    plt.savefig(f"{save_path}{title}.png")
     plt.close(fig)
 
 
@@ -224,5 +230,8 @@ def plot_stft(y: np.ndarray):
     )
     title = f"sr{config['sample_rate']}_hl{config['hop_length']}_nfft{config['n_fft']}_wl{config['window_length']}_w{y.shape[1]}_h{y.shape[0]}"
     plt.title(title)
-    plt.savefig(f"reports/figures/spectrograms/{title}.png")
+    save_path = 'reports/figures/spectrograms/'
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
+    plt.savefig(f"{save_path}{title}.png")
     plt.close(fig)
