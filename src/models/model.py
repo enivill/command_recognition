@@ -19,6 +19,7 @@ from src.utils import config as my_config
 from src.utils.logger import get_logger
 import yaml
 from pandas import read_csv
+import time
 
 warnings.filterwarnings('ignore')
 
@@ -39,6 +40,7 @@ class SiameseNet:
         self.model = None
         self.callbacks = []
         self.history = None
+        self.training_time = None
         self.logdir = os.path.join(self.config['log']['dir'], self.config['log']['name'])
         if not os.path.exists(self.logdir):
             os.mkdir(self.logdir)
@@ -153,7 +155,7 @@ class SiameseNet:
             optimizer=Adam(lr=self.config['learning_rate']),
             metrics=[BinaryAccuracy()]
         )
-
+        start = time.time()
         self.history = self.model.fit(x=self.datagen_train,
                                       steps_per_epoch=len(self.datagen_train),
                                       epochs=self.epochs,
@@ -161,6 +163,9 @@ class SiameseNet:
                                       callbacks=self.callbacks,
                                       validation_data=self.datagen_val,
                                       validation_steps=len(self.datagen_val))
+        stop = time.time()
+        self.training_time = time.strftime("%H:%M:%S", time.gmtime(stop-start))
+        LOG.info(f"Training time: {self.training_time}")
         # model.load_weights('siamese_checkpoint.h5')
 
         LOG.info("Training complete.")
@@ -229,14 +234,14 @@ class SiameseNet:
         tn, fp, fn, tp = confusion_matrix(true_y, pred_y).ravel()
         print(f"TYPE SCORE[0]: {type(scores[0])}")
         print(f"TYPE TN: {type(tn)}")
-        metrics = {"Test loss": int(scores[0]), "Test accuracy": int(scores[1]), "Accuracy": Accuracy, "Precision": Precision,
+        metrics = {"Training time (hour:minute:second)": self.training_time, "Test loss": int(scores[0]), "Test accuracy": int(scores[1]), "Accuracy": Accuracy, "Precision": Precision,
                    "Sensitivity_recall": Sensitivity_recall, "Specificity": Specificity, "F1_score": F1_score,
                    "TN": int(tn), "FP": int(fp), "FN": int(fn), "TP": int(tp)}
         with open(os.path.join(self.logdir, 'metrics.json'), 'w') as json_file:
             json.dump(metrics, json_file)
             json_file.close()
 
-        conf_matrix = confusion_matrix(true_y, pred_y)
+        conf_matrix = confusion_matrix(true_y, pred_y, normalize='all')
         # TODO maybe we should rename True and False in display_labels.
         cm_display = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=[False, True])
         plt.ioff()

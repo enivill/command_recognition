@@ -10,4 +10,9 @@ archive.py
 base-model.png
 outer-model.png
 siamese_checkpoint.h5
+src/configs/__pycache__
+src/data/__pycache__
+src/features/__pycache__
+src/models/__pycache__
+src/utils/__pycache__
 
