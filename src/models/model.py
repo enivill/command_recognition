@@ -12,6 +12,7 @@ from keras.api._v2.keras.utils import plot_model
 from sklearn.metrics import classification_report, accuracy_score, f1_score, precision_score, recall_score, \
     ConfusionMatrixDisplay, confusion_matrix
 import tensorflow as tf
+from tensorflow.python.keras.utils.layer_utils import count_params
 import os
 import numpy as np
 from src.models.generators import SiameseGenerator
@@ -27,12 +28,14 @@ LOG = get_logger('SiameseNet')
 
 
 class SiameseNet:
-    def __init__(self):
+    def __init__(self, shape):
         self.config = my_config.get_config()
         self.epochs = self.config['epochs']
         self.batch_size = self.config['batch_size']
-        self.input_dim_a = self.config['input_dim_a']
-        self.input_dim_b = self.config['input_dim_b']
+        # self.input_dim_a = self.config['input_dim_a']
+        # self.input_dim_b = self.config['input_dim_b']
+        self.input_dim_a = shape[0]
+        self.input_dim_b = shape[1]
         self.input_channels = 1
         self.datagen_val = None
         self.datagen_train = None
@@ -41,6 +44,7 @@ class SiameseNet:
         self.callbacks = []
         self.history = None
         self.training_time = None
+        self.trainable_count = None
         self.logdir = os.path.join(self.config['log']['dir'], self.config['log']['name'])
         if not os.path.exists(self.logdir):
             os.mkdir(self.logdir)
@@ -73,6 +77,7 @@ class SiameseNet:
         plot_model(self.model, to_file=os.path.join(self.logdir, "model_expand_nested.png"), show_shapes=True,
                    show_layer_names=True, expand_nested=True,
                    show_layer_activations=True)
+        self.trainable_count = count_params(self.model.trainable_weights)
 
     def _identical_subnetwork(self):
         config = my_config.get_config()
@@ -94,7 +99,8 @@ class SiameseNet:
         for idx in range(cnn['num_of_layers'])[1:]:
             if cnn['dropout'][idx] is not None:
                 model = Convolution2D(filters=cnn['conv']['filters'][idx], kernel_size=cnn['conv']['kernel'][idx],
-                                  strides=cnn['conv']['stride'][idx], activation=cnn['conv']['activation'][idx])(model)
+                                      strides=cnn['conv']['stride'][idx], activation=cnn['conv']['activation'][idx])(
+                    model)
             if cnn['dropout'][idx] is not None:
                 model = Dropout(cnn['dropout'][idx])(model)
             if cnn['pool']['size'][idx] is not None:
@@ -164,7 +170,7 @@ class SiameseNet:
                                       validation_data=self.datagen_val,
                                       validation_steps=len(self.datagen_val))
         stop = time.time()
-        self.training_time = time.strftime("%H:%M:%S", time.gmtime(stop-start))
+        self.training_time = time.strftime("%H:%M:%S", time.gmtime(stop - start))
         LOG.info(f"Training time: {self.training_time}")
         # model.load_weights('siamese_checkpoint.h5')
 
@@ -234,7 +240,9 @@ class SiameseNet:
         tn, fp, fn, tp = confusion_matrix(true_y, pred_y).ravel()
         print(f"TYPE SCORE[0]: {type(scores[0])}")
         print(f"TYPE TN: {type(tn)}")
-        metrics = {"Training time (hour:minute:second)": self.training_time, "Test loss": int(scores[0]), "Test accuracy": int(scores[1]), "Accuracy": Accuracy, "Precision": Precision,
+        metrics = {"Training time (hour:minute:second)": self.training_time, "Trainable params": self.trainable_count,
+                   "Test loss": scores[0], "Test accuracy": scores[1],
+                   "Accuracy": Accuracy, "Precision": Precision,
                    "Sensitivity_recall": Sensitivity_recall, "Specificity": Specificity, "F1_score": F1_score,
                    "TN": int(tn), "FP": int(fp), "FN": int(fn), "TP": int(tp)}
         with open(os.path.join(self.logdir, 'metrics.json'), 'w') as json_file:

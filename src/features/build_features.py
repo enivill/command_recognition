@@ -117,7 +117,7 @@ def feature_extraction(file: str) -> np.ndarray:
     else:  # mfcc
         audio_feature = mfcc(y, sr)
 
-    return np.array(audio_feature).T
+    return np.array(audio_feature)
 
 
 def fill_in_with_zeros(audio: np.ndarray, sample_rate: float) -> np.ndarray:
