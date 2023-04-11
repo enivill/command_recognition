@@ -74,6 +74,13 @@ layers:
     activation: [ "relu", "relu"]
     dropout: [0.2, 0.2]
 
+after_distance:
+  dns:
+    num_of_layers: 0
+    units: [  ]
+    activation: [  ]
+    dropout: [  ]
+
 
 
 
