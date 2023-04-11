@@ -1,63 +1,58 @@
+paths:
+  raw_data_root: data/external/speech_commands_v0.01/
+  dataset_root: data/datasets/without_outliers/
+  pairs_root: data/pairs/without_outliers_w100/
+  dataset_name:
+    train: train.txt
+    val: val.txt
+    test: test.txt
+  pairs_name:
+    train: train_pairs.csv
+    val: val_pairs.csv
+    test: test_pairs.csv
 
-# INITIAL SETTINGS
-raw_data_root: data/external/speech_commands_v0.01/
-#classes: ['bed', 'bird', 'cat', 'dog', 'down', 'eight', 'five', 'four', 'go', 'happy', 'house', 'left', 'marvin', 'nine', 'no', 'off', 'on', 'one', 'right', 'seven', 'sheila', 'six', 'stop', 'three', 'tree', 'two', 'up', 'wow', 'yes', 'zero']
+split:
+  delete_outlier: True
+  duration_limit: 1.0
+  percentage:
+    train: 60
+    val: 20
+    test: 20
 
-# AUDIO LENGTH
-delete_outlier: True
-duration_limit: 1.0
+make_pairs:
+  order: [ 'train', 'val', 'test' ]  # do not change
+  word_per_class_train: 100 # use null if you want to load all the data
+  excluded_classes: # _background_noise_ is automatically excluded
+    train: [ ]
+    val: [ ]
+    test: [ ]
+  percentage:
+    train: 60
+    val: 20
+    test: 20
 
-# SPLIT DATA
-dataset_root: data/datasets/without_outliers/
-dataset_name:
-  train: train.txt
-  val: val.txt
-  test: test.txt
-percentage:
-  train: 60
-  val: 20
-  test: 20
-
-# MAKE PAIRS
-word_per_class_train: 500 # use null if you want to load all the data
-excluded_classes: # _background_noise_ is automatically excluded
-  train: [ ]
-  val: [ ]
-  test: [ ]
-order: [ 'train', 'val', 'test' ]  # do not change
-pairs_root: data/pairs/without_outliers_w500/
-pairs_name:
-  train: train_pairs.csv
-  val: val_pairs.csv
-  test: test_pairs.csv
-
-# FEATURE EXTRACTION
-sample_rate: 16000
-n_fft: 512
-window_length: 320  # same as n_fft
-hop_length: 160   # window_length // 2
-n_mels: 128
-n_mfcc: 16
-f_min: 50
-f_max: 4000
-
-
-# TRAIN
-log:
-  dir: models/
-  name: siamese_no4/
-batch_size: 128
-epochs: 20
-feature_type: mfcc   # mfcc, stft, mel
-learning_rate: 0.001
-
-# for MFCC - number of MFCCs, n_mfcc
-# for mel, number of Mel bands, n_mels
-input_dim_a: 126
-input_dim_b: 16
+feature_extraction:
+  sample_rate: 16000
+  window_length_seconds: 20
+  hop_length_seconds: 10
+  n_mels: 30
+  n_mfcc: 16
+  f_min: 200
+  f_max: 4000
 
 
-# BASE NETWORK
+train:
+  log:
+    dir: models/
+    name: delete_this/
+  batch_size: 128
+  epochs: 1
+  feature_type: mel   # mfcc, stft, mel
+  learning_rate: 0.001
+  input_dim_a: 63
+  input_dim_b: 16
+
+
 layers:
   cnn:
     num_of_layers: 2
@@ -71,8 +66,6 @@ layers:
     pool:
       size: [2,2]
       stride: [2,2]
-
-
   flt: True
   GlobalAveragePooling: False
   dns:

@@ -30,8 +30,8 @@ LOG = get_logger('SiameseNet')
 class SiameseNet:
     def __init__(self, shape):
         self.config = my_config.get_config()
-        self.epochs = self.config['epochs']
-        self.batch_size = self.config['batch_size']
+        self.epochs = self.config['train']['epochs']
+        self.batch_size = self.config['train']['batch_size']
         # self.input_dim_a = self.config['input_dim_a']
         # self.input_dim_b = self.config['input_dim_b']
         self.input_dim_a = shape[0]
@@ -45,7 +45,7 @@ class SiameseNet:
         self.history = None
         self.training_time = None
         self.trainable_count = None
-        self.logdir = os.path.join(self.config['log']['dir'], self.config['log']['name'])
+        self.logdir = os.path.join(self.config['train']['log']['dir'], self.config['train']['log']['name'])
         if not os.path.exists(self.logdir):
             os.mkdir(self.logdir)
 
@@ -80,12 +80,12 @@ class SiameseNet:
         self.trainable_count = count_params(self.model.trainable_weights)
 
     def _identical_subnetwork(self):
-        config = my_config.get_config()
+        layers_config = my_config.get_config()['layers']
         inputs = Input(shape=(self.input_dim_a, self.input_dim_b, self.input_channels), name='base_input')
 
-        cnn = config['layers']['cnn']
-        denses = config['layers']['dns']
-        flatten = config['layers']['flt']
+        cnn = layers_config['cnn']
+        denses = layers_config['dns']
+        flatten = layers_config['flt']
 
         # first layer of convolution2D
         model = Convolution2D(filters=cnn['conv']['filters'][0], kernel_size=cnn['conv']['kernel'][0],
@@ -127,7 +127,7 @@ class SiameseNet:
         # Callbacks:
         LOG.info("Setting callback functions...")
         # Only save the best model weights based on the val_loss
-        checkpoint = ModelCheckpoint(os.path.join(self.logdir, 'snn_model-{epoch:02d}-{val_loss:.2f}.h5'),
+        checkpoint = ModelCheckpoint(os.path.join(self.logdir, 'snn_model_best.h5'),
                                      monitor='val_loss', save_best_only=True, verbose=1, mode='min')
         early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', patience=5, verbose=1,
                                                           min_delta=1e-3)
@@ -136,7 +136,7 @@ class SiameseNet:
         # Training logger
         csv_logger = CSVLogger(os.path.join(self.logdir, 'training.csv'), separator=',', append=True)
         # Save the embedding model weights if you save a new snn best model based on the model checkpoint above
-        emb_weight_saver = SaveEmbeddingModelWeights(filepath=os.path.join(self.logdir, 'emb_model-{epoch:02d}.h5'),
+        emb_weight_saver = SaveEmbeddingModelWeights(filepath=os.path.join(self.logdir, 'emb_model_best.h5'),
                                                      identical_subnetwork=self.identical_subnetwork)
         self.callbacks = [checkpoint, early_stopping, csv_logger, emb_weight_saver, reduce_lr]
 
@@ -158,7 +158,7 @@ class SiameseNet:
 
         self.model.compile(
             loss=BinaryCrossentropy(from_logits=False),
-            optimizer=Adam(lr=self.config['learning_rate']),
+            optimizer=Adam(lr=self.config['train']['learning_rate']),
             metrics=[BinaryAccuracy()]
         )
         start = time.time()
@@ -228,7 +228,7 @@ class SiameseNet:
         y_prob = self.model.predict(x=datagen_test_pred, steps=len(datagen_test_pred), verbose=1)
         # y_classes = y_prob.argmax(axis=-1)
         pred_y = [1 * (x[0] >= 0.5) for x in y_prob]
-        data = read_csv(f'{self.config["pairs_root"]}{self.config["pairs_name"]["test"]}', delimiter=';')
+        data = read_csv(f'{self.config["paths"]["pairs_root"]}{self.config["paths"]["pairs_name"]["test"]}', delimiter=';')
         true_y = data["label"].to_numpy().astype('float32')
         print(classification_report(true_y, pred_y))
 

@@ -12,15 +12,12 @@ import os
 # TODO
 #  do the same for stft and mfcc
 def mel(y: np.ndarray, sr: float) -> np.ndarray:
-    config = my_config.get_config()
+    config = my_config.get_config()['feature_extraction']
+
     # changeable options
     # sr_load = 16000  # sample rate
-    n_fft = config['n_fft']
-    window_length = config['window_length']
-    hop_length = config['hop_length']
+    n_fft, window_length, hop_length = calculate_nfft_wl_hl()
     n_mels = config['n_mels']
-    # fyi
-    #  dimension of the mel and mel_decibel is (n_mels, 126)
 
     mel_spectrogram = librosa.feature.melspectrogram(
         y=y,
@@ -36,12 +33,9 @@ def mel(y: np.ndarray, sr: float) -> np.ndarray:
 
 
 def mfcc(y: np.ndarray, sr: float) -> np.ndarray:
-    config = my_config.get_config()
-    # changeable options
-    # sr_load = 16000  # sample rate
-    n_fft = config['n_fft']
-    window_length = config['window_length']
-    hop_length = config['hop_length']
+    config = my_config.get_config()['feature_extraction']
+
+    n_fft, window_length, hop_length = calculate_nfft_wl_hl()
     n_mels = config['n_mels']
     n_mfcc = config['n_mfcc']
     f_min = config['f_min']
@@ -55,7 +49,6 @@ def mfcc(y: np.ndarray, sr: float) -> np.ndarray:
         window='hann',
         n_mels=n_mels,
         n_fft=n_fft,
-        # n_mfcc=int((2 / 3) * n_mels)
         n_mfcc=n_mfcc,
         fmin=f_min,
         fmax=f_max
@@ -63,15 +56,8 @@ def mfcc(y: np.ndarray, sr: float) -> np.ndarray:
     return mfccs
 
 
-def stft(y: np.ndarray, sr: float):
-    config = my_config.get_config()
-    # changeable options
-    # sr_load = 16000  # sample rate
-    n_fft = config['n_fft']
-    window_length = config['window_length']
-    hop_length = config['hop_length']
-    f_min = config['f_min']
-    f_max = config['f_max']
+def stft(y: np.ndarray):
+    n_fft, window_length, hop_length = calculate_nfft_wl_hl()
 
     y_fourier = librosa.stft(
         y=y,
@@ -109,11 +95,11 @@ def feature_extraction_dataset(feature_type: str, data: np.ndarray, root: str, s
 def feature_extraction(file: str) -> np.ndarray:
     config = my_config.get_config()
 
-    y, sr = load_audio(file, config['sample_rate'], config['raw_data_root'])
-    if config['feature_type'] == 'mel':
+    y, sr = load_audio(file, config['feature_extraction']['sample_rate'], config['paths']['raw_data_root'])
+    if config['train']['feature_type'] == 'mel':
         audio_feature = mel(y, sr)
-    elif config['feature_type'] == 'stft':
-        audio_feature = stft(y, sr)
+    elif config['train']['feature_type'] == 'stft':
+        audio_feature = stft(y)
     else:  # mfcc
         audio_feature = mfcc(y, sr)
 
@@ -138,8 +124,9 @@ def load_audio(data_path: str, sr: int, raw_data_root: str) -> (np.ndarray, floa
     Load an audio file as a floating point time series.
     Audio will be automatically resampled to the given rate (default sr=22050).
     To preserve the native sampling rate of the file, use sr=None.
+    :param raw_data_root:
+    :param sr:
     :param data_path:
-    :param config:
     :return:
     """
     y, sr = librosa.load(f"{raw_data_root}{data_path}", sr=sr)
@@ -164,20 +151,21 @@ def plot_audio(y: np.ndarray, label: float, sr: float):
 
 
 def plot_mel(y: np.ndarray):
-    config = my_config.get_config()
+    config = my_config.get_config()['feature_extraction']
+    n_fft, window_length, hop_length = calculate_nfft_wl_hl()
 
     plt.ioff()
     fig = plt.figure()
     display.specshow(
         data=y,
         sr=config["sample_rate"],
-        hop_length=config['hop_length'],
-        n_fft=config['n_fft'],
-        win_length=config['window_length'],
+        hop_length=hop_length,
+        n_fft=n_fft,
+        win_length=window_length,
         x_axis='time',
         y_axis='mel'
     )
-    title = f"sr{config['sample_rate']}_hl{config['hop_length']}_nfft{config['n_fft']}_wl{config['window_length']}_mels{config['n_mels']}_mfcc{config['n_mfcc']}_fmin{config['f_min']}_fmax{config['f_max']}_w{y.shape[1]}_h{y.shape[0]}"
+    title = f"sr{config['sample_rate']}_hl{hop_length}_nfft{n_fft}_wl{window_length}_mels{config['n_mels']}_fmin{config['f_min']}_fmax{config['f_max']}_w{y.shape[1]}_h{y.shape[0]}"
     plt.title(title)
     save_path = 'reports/figures/mel_spectrograms/'
     if not os.path.exists(save_path):
@@ -186,8 +174,10 @@ def plot_mel(y: np.ndarray):
     plt.close(fig)
 
 
-def plot_mfcc(mfccs: np.ndarray, norm: bool=False):
-    config = my_config.get_config()
+def plot_mfcc(mfccs: np.ndarray, norm: bool = False):
+    config = my_config.get_config()['feature_extraction']
+    n_fft, window_length, hop_length = calculate_nfft_wl_hl()
+
     plt.ioff()
     fig = plt.figure()
     if norm:
@@ -200,13 +190,13 @@ def plot_mfcc(mfccs: np.ndarray, norm: bool=False):
         librosa.display.specshow(
             data=mfccs,
             sr=config["sample_rate"],
-            hop_length=config['hop_length'],
-            n_fft=config['n_fft'],
-            win_length=config['window_length'],
+            hop_length=hop_length,
+            n_fft=n_fft,
+            win_length=window_length,
             x_axis='time'
         )
 
-    title = f"sr{config['sample_rate']}_hl{config['hop_length']}_nfft{config['n_fft']}_wl{config['window_length']}_mels{config['n_mels']}_mfcc{config['n_mfcc']}_fmin{config['f_min']}_fmax{config['f_max']}_w{mfccs.shape[1]}_h{mfccs.shape[0]}"
+    title = f"sr{config['sample_rate']}_hl{hop_length}_nfft{n_fft}_wl{window_length}_mels{config['n_mels']}_mfcc{config['n_mfcc']}_fmin{config['f_min']}_fmax{config['f_max']}_w{mfccs.shape[1]}_h{mfccs.shape[0]}"
     plt.title(title)
     save_path = 'reports/figures/mfcc_spectrograms/'
     if not os.path.exists(save_path):
@@ -216,22 +206,52 @@ def plot_mfcc(mfccs: np.ndarray, norm: bool=False):
 
 
 def plot_stft(y: np.ndarray):
-    config = my_config.get_config()
+    config = my_config.get_config()['feature_extraction']
+    n_fft, window_length, hop_length = calculate_nfft_wl_hl()
+
     plt.ioff()
     fig = plt.figure()
     img = librosa.display.specshow(
         data=y,
         sr=config['sample_rate'],
-        hop_length=config['hop_length'],
-        n_fft=config['n_fft'],
-        win_length=config['window_length'],
-        x_axis='time',
-        y_axis='log'
+        hop_length=hop_length,
+        n_fft=n_fft,
+        win_length=window_length,
+        # x_axis='time',
+        # y_axis='log'
+        x_axis='frames',
+        y_axis='hz'
     )
-    title = f"sr{config['sample_rate']}_hl{config['hop_length']}_nfft{config['n_fft']}_wl{config['window_length']}_w{y.shape[1]}_h{y.shape[0]}"
+    title = f"sr{config['sample_rate']}_hl{hop_length}_nfft{n_fft}_wl{window_length}_w{y.shape[1]}_h{y.shape[0]}"
     plt.title(title)
     save_path = 'reports/figures/spectrograms/'
     if not os.path.exists(save_path):
         os.mkdir(save_path)
     plt.savefig(f"{save_path}{title}.png")
     plt.close(fig)
+
+
+def calculate_nfft_wl_hl():
+    """
+    Calculates the n_fft, window_length and hop_length from given wl and hl values in seconds and the sample rate.
+    :return:
+    """
+    config = my_config.get_config()['feature_extraction']
+    window_length_seconds = config['window_length_seconds']
+    hop_length_seconds = config['hop_length_seconds']
+    sample_rate = config['sample_rate']
+
+    window_length = window_length_seconds / 1000 * sample_rate
+    hop_length = hop_length_seconds / 1000 * sample_rate
+    nfft = next_power_of_2(window_length)
+
+    return nfft, window_length, hop_length
+
+
+def next_power_of_2(x: int):
+    """
+    Find the smallest power of 2 greater than or equal to x
+    :param x:
+    :return:
+    """
+    return 1 << (x - 1).bit_length()

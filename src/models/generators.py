@@ -70,12 +70,13 @@ class SiameseGenerator(Sequence):
     def __init__(self, dataset_name: str, shuffle=True, to_fit=True):
 
         # Initialization
-        self.config = my_config.get_config()
-        self.batch_size = self.config["batch_size"]
-        self.raw_data_root = self.config["raw_data_root"]
+        self.paths_config = my_config.get_config()['paths']
+        self.train_config = my_config.get_config()['train']
+        self.batch_size =self.train_config["batch_size"]
+        self.raw_data_root = self.paths_config["raw_data_root"]
         self.shuffle = shuffle
         self.to_fit = to_fit
-        self.data = read_csv(f'{self.config["pairs_root"]}{self.config["pairs_name"][dataset_name]}', delimiter=';')
+        self.data = read_csv(f'{self.paths_config["pairs_root"]}{self.paths_config["pairs_name"][dataset_name]}', delimiter=';')
         self.data = self.data.to_numpy()
         self.datalen = len(self.data)
         self.indexes = np.arange(self.datalen)

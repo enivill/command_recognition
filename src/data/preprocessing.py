@@ -20,14 +20,15 @@ def split_data():
     :return:
     """
     config = my_config.get_config()
+    paths = config['paths']
     # -- CONFIG values --
-    dataset_root = f"{config['dataset_root']}"
-    train_set_name = config['dataset_name']['train']
-    val_set_name = config['dataset_name']['val']
-    test_set_name = config['dataset_name']['test']
-    raw_data_root = config['raw_data_root']
-    duration_limit = config['duration_limit']
-    delete_outliers_bool = config['delete_outlier']
+    dataset_root = f"{paths['dataset_root']}"
+    train_set_name = paths['dataset_name']['train']
+    val_set_name = paths['dataset_name']['val']
+    test_set_name = paths['dataset_name']['test']
+    raw_data_root = paths['raw_data_root']
+    duration_limit = config['split']['duration_limit']
+    delete_outliers_bool = config['split']['delete_outlier']
 
     validation_set = []
     train_set = []
@@ -98,8 +99,8 @@ def which_set(filename: str) -> str:
 
     config = my_config.get_config()
     # -- CONFIG values --
-    val_percentage = config['percentage']['val']
-    test_percentage = config['percentage']['test']
+    val_percentage = config['split']['percentage']['val']
+    test_percentage = config['split']['percentage']['test']
 
     base_name = os.path.basename(filename)
     # We want to ignore anything after '_nohash_' in the file name when

@@ -18,17 +18,18 @@ def make_pairs() -> None:
     You can edit the configurations in the config.yaml file
     :return:
     """
-    config = my_config.get_config()
+    make_pairs_config = my_config.get_config()['make_pairs']
+    paths_config = my_config.get_config()['paths']
     # -- CONFIG values --
-    data_path = config['raw_data_root']
-    dataset_root = config['dataset_root']
-    dataset_name_dict = config['dataset_name']
-    excluded_classes_dict = config['excluded_classes']
-    word_per_class_train = config['word_per_class_train']
-    order_lst = config['order']
-    percentage_dict = config['percentage']
-    pairs_root = config['pairs_root']
-    pairs_name_dict = config['pairs_name']
+    data_path = paths_config['raw_data_root']
+    dataset_root = paths_config['dataset_root']
+    dataset_name_dict = paths_config['dataset_name']
+    excluded_classes_dict = make_pairs_config['excluded_classes']
+    word_per_class_train = make_pairs_config['word_per_class_train']
+    order_lst = make_pairs_config['order']
+    percentage_dict = make_pairs_config['percentage']
+    pairs_root = paths_config['pairs_root']
+    pairs_name_dict = paths_config['pairs_name']
 
     # make dataset root directory if not exists
     os.makedirs(os.path.dirname(pairs_root), exist_ok=True)
@@ -99,7 +100,7 @@ def make_pairs() -> None:
 
         # save config
         with open(f"{pairs_root}config.yaml", 'w') as f:
-            yaml.dump(config, f)
+            yaml.dump(make_pairs_config, f)
 
         print(f"\nPair creation is Done. It is saved to {pairs_root}{pairs_name_dict[current_set]}")
 
