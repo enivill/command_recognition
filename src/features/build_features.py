@@ -243,9 +243,9 @@ def calculate_nfft_wl_hl():
 
     window_length = window_length_seconds / 1000 * sample_rate
     hop_length = hop_length_seconds / 1000 * sample_rate
-    nfft = next_power_of_2(window_length)
+    nfft = next_power_of_2(int(window_length))
 
-    return nfft, window_length, hop_length
+    return int(nfft), int(window_length), int(hop_length)
 
 
 def next_power_of_2(x: int):
