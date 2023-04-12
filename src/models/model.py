@@ -240,27 +240,41 @@ class SiameseNet:
         Specificity = recall_score(true_y, pred_y, pos_label=0)
         F1_score = f1_score(true_y, pred_y)
         tn, fp, fn, tp = confusion_matrix(true_y, pred_y).ravel()
-        print(f"TYPE SCORE[0]: {type(scores[0])}")
-        print(f"TYPE TN: {type(tn)}")
-        training_settings = {'word_per_class': self.config['make_pairs']['word_per_class'], 'sr': self.config['feature_extraction']['sample_rate'], 'wl': self.config['feature_extraction']['window_length_seconds'], 'hl': self.config['feature_extraction']['hop_length_seconds'], 'mels': self.config['feature_extraction']['n_mels'], 'f_min': self.config['feature_extraction']['f_min'], 'f_max': self.config['feature_extraction']['f_max'], 'cnn_filters': self.config['layers']['cnn']['conv']['filters'], 'cnn_kernel'self.config['layers']['cnn']['conv']['kernel'],
-                             'cnn_stride':self.config['layers']['cnn']['conv']['stride'],
-                             'cnn_activation':self.config['layers']['cnn']['conv']['activation'], 'cnn_dropout':self.config['layers']['cnn']['dropout'], 'cnn_pool_size':self.config['layers']['cnn']['pool']['size'], 'cnn_pool_stride':self.config['layers']['cnn']['pool']['stride'], 'flatten':self.config['layers']['flt'],
-                             'dns_units':self.config['layers']['dns']['units'], 'dns_activation':self.config['layers']['dns']['activation'], 'dns_dropout':self.config['layers']['dns']['dropout'],
-                             'after_distance_dns_unit': self.config['after_distance']['dns']['units'],'after_distance_dns_act': self.config['after_distance']['dns']['activation'],'after_distance_dns_drop': self.config['after_distance']['dns']['dropout']}
-        metrics = {"Training time (hour:minute:second)": self.training_time, "Trainable params": self.trainable_count,
+
+        training_settings = {'model_path': self.config['train']['log']['name'],
+                             'word_per_class': self.config['make_pairs']['word_per_class_train'],
+                             'sr': self.config['feature_extraction']['sample_rate'],
+                             'wl': self.config['feature_extraction']['window_length_seconds'],
+                             'hl': self.config['feature_extraction']['hop_length_seconds'],
+                             'mels': self.config['feature_extraction']['n_mels'],
+                             'f_min': self.config['feature_extraction']['f_min'],
+                             'f_max': self.config['feature_extraction']['f_max'],
+                             'cnn_filters': self.config['layers']['cnn']['conv']['filters'],
+                             'cnn_kernel': self.config['layers']['cnn']['conv']['kernel'],
+                             'cnn_stride': self.config['layers']['cnn']['conv']['stride'],
+                             'cnn_activation': self.config['layers']['cnn']['conv']['activation'],
+                             'cnn_dropout': self.config['layers']['cnn']['dropout'],
+                             'cnn_pool_size': self.config['layers']['cnn']['pool']['size'],
+                             'cnn_pool_stride': self.config['layers']['cnn']['pool']['stride'],
+                             'flatten': self.config['layers']['flt'],
+                             'dns_units': self.config['layers']['dns']['units'],
+                             'dns_activation': self.config['layers']['dns']['activation'],
+                             'dns_dropout': self.config['layers']['dns']['dropout'],
+                             'after_distance_dns_unit': self.config['after_distance']['dns']['units'],
+                             'after_distance_dns_act': self.config['after_distance']['dns']['activation'],
+                             'after_distance_dns_drop': self.config['after_distance']['dns']['dropout']}
+        metrics = {"Training time(H:M:S)": self.training_time, "Trainable params": self.trainable_count,
                    "Test loss": scores[0], "Test accuracy": scores[1],
                    "Accuracy": Accuracy, "Precision": Precision,
                    "Sensitivity_recall": Sensitivity_recall, "Specificity": Specificity, "F1_score": F1_score,
                    "TN": int(tn), "FP": int(fp), "FN": int(fn), "TP": int(tp)}
 
         # append model results to csv
-        self._save_model_result_to_csv()
+        self._save_model_result_to_csv(metrics, training_settings)
 
         with open(os.path.join(self.logdir, 'metrics.json'), 'w') as json_file:
             json.dump(metrics, json_file)
             json_file.close()
-
-
 
         conf_matrix = confusion_matrix(true_y, pred_y, normalize='all')
         # TODO maybe we should rename True and False in display_labels.
@@ -269,23 +283,18 @@ class SiameseNet:
         cm_display.plot()
         plt.savefig(os.path.join(self.logdir, 'confusion_matrix.png'))
 
-    def _save_model_result_to_csv(self):
+    def _save_model_result_to_csv(self, metrics: dict, train_settings: dict):
         # TODO change headers, test it
         filename = os.path.join(self.config['train']['log']['dir'], 'model_results.csv')
         file_exists = os.path.isfile(filename)
         with open(filename, 'a') as csvfile:
-            headers = ['word_per_class', 'sr', 'wl', 'hl', 'mels', 'f_min', 'f_max', 'cnn_filters', 'cnn_kernel',
-                       'cnn_stride',
-                       'cnn_activation', 'cnn_dropout', 'cnn_pool_size', 'cnn_pool_stride', 'flatten', 'dns_units',
-                       'dns_activation', 'dns_dropout',
-                       'distance', 'after_distance', 'sigmoid', 'time', 'train_params', 'test_loss', 'test_acc', 'acc',
-                       'precision', 'sens_recall', 'specificity', 'f1', 'tn', 'fp', 'fn', 'tp']
-            writer = csv.DictWriter(csvfile, delimiter=',', lineterminator='\n', fieldnames=headers)
+            headers = [*metrics.keys(), *train_settings.keys()]
+            writer = csv.DictWriter(csvfile, delimiter=';', lineterminator='\r\n', fieldnames=headers)
 
             if not file_exists:
                 writer.writeheader()  # file doesn't exist yet, write a header
 
-            writer.writerow({'TimeStamp': dic['ts'], 'light': dic['light'], 'Proximity': dic['prox']})
+            writer.writerow(metrics | train_settings)
 
     def restore_model(self, file: str):
         self.model = load_model(file, custom_objects={'contrast_function': DistanceLayer})
