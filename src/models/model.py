@@ -254,6 +254,7 @@ class SiameseNet:
                              'cnn_stride': self.config['layers']['cnn']['conv']['stride'],
                              'cnn_activation': self.config['layers']['cnn']['conv']['activation'],
                              'cnn_dropout': self.config['layers']['cnn']['dropout'],
+                             'cnn_batch_norm': self.config['layers']['cnn']['batchnorm'],
                              'cnn_pool_size': self.config['layers']['cnn']['pool']['size'],
                              'cnn_pool_stride': self.config['layers']['cnn']['pool']['stride'],
                              'flatten': self.config['layers']['flt'],
