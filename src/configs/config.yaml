@@ -10,6 +10,7 @@ paths:
     train: train_pairs.csv
     val: val_pairs.csv
     test: test_pairs.csv
+  results_csv: model_results.csv
 
 split:
   delete_outlier: True
@@ -21,7 +22,7 @@ split:
 
 make_pairs:
   order: [ 'train', 'val', 'test' ]  # do not change
-  word_per_class_train: 100 # use null if you want to load all the data
+  word_per_class_train: 500 # use null if you want to load all the data
   excluded_classes: # _background_noise_ is automatically excluded
     train: [ ]
     val: [ ]
@@ -35,22 +36,20 @@ feature_extraction:
   sample_rate: 16000
   window_length_seconds: 20
   hop_length_seconds: 10
-  n_mels: 30
+  n_mels: 50
   n_mfcc: 16
-  f_min: 200
-  f_max: 4000
+  f_min: 0
+  f_max: 8000
 
 
 train:
   log:
     dir: models/
-    name: delete_this/
+    name: mel_1aa/
   batch_size: 128
   epochs: 1
   feature_type: mel   # mfcc, stft, mel
   learning_rate: 0.001
-  input_dim_a: 63
-  input_dim_b: 16
 
 
 layers:

@@ -240,6 +240,7 @@ class SiameseNet:
         Specificity = recall_score(true_y, pred_y, pos_label=0)
         F1_score = f1_score(true_y, pred_y)
         tn, fp, fn, tp = confusion_matrix(true_y, pred_y).ravel()
+        one_percent = (tn + fp + fn + tp) / 100
 
         training_settings = {'model_path': self.config['train']['log']['name'],
                              'word_per_class': self.config['make_pairs']['word_per_class_train'],
@@ -264,11 +265,14 @@ class SiameseNet:
                              'after_distance_dns_unit': self.config['after_distance']['dns']['units'],
                              'after_distance_dns_act': self.config['after_distance']['dns']['activation'],
                              'after_distance_dns_drop': self.config['after_distance']['dns']['dropout']}
-        metrics = {"Training time(H:M:S)": self.training_time, "Trainable params": self.trainable_count,
+
+        metrics = {"Time(H:M:S)": self.training_time, "Params": self.trainable_count,
                    "Test loss": scores[0], "Test accuracy": scores[1],
                    "Accuracy": Accuracy, "Precision": Precision,
-                   "Sensitivity_recall": Sensitivity_recall, "Specificity": Specificity, "F1_score": F1_score,
-                   "TN": int(tn), "FP": int(fp), "FN": int(fn), "TP": int(tp)}
+                   "Sensitivity_recall": Sensitivity_recall, "Specificity": Specificity, "F1": F1_score,
+                   "TN": int(tn), "FP": int(fp), "FN": int(fn), "TP": int(tp),
+                   "TN %": int((tn / one_percent) * 100), "FP %": int((fp / one_percent) * 100),
+                   "FN %": int((fn / one_percent) * 100), "TP %": int((tp / one_percent) * 100)}
 
         # append model results to csv
         self._save_model_result_to_csv(metrics, training_settings)
@@ -286,7 +290,7 @@ class SiameseNet:
 
     def _save_model_result_to_csv(self, metrics: dict, train_settings: dict):
         # TODO change headers, test it
-        filename = os.path.join(self.config['train']['log']['dir'], 'model_results.csv')
+        filename = os.path.join(self.config['train']['log']['dir'], self.config['paths']['results_csv'])
         file_exists = os.path.isfile(filename)
         with open(filename, 'a') as csvfile:
             headers = [*metrics.keys(), *train_settings.keys()]
