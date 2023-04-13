@@ -133,7 +133,7 @@ class SiameseNet:
         early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', patience=5, verbose=1,
                                                           min_delta=1e-3)
         reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
-                                      patience=3, min_lr=0.001, verbose=1)
+                                      patience=3, min_lr=0.00001, verbose=1)
         # Training logger
         csv_logger = CSVLogger(os.path.join(self.logdir, 'training.csv'), separator=',', append=True)
         # Save the embedding model weights if you save a new snn best model based on the model checkpoint above
@@ -271,8 +271,8 @@ class SiameseNet:
                    "Accuracy": Accuracy, "Precision": Precision,
                    "Sensitivity_recall": Sensitivity_recall, "Specificity": Specificity, "F1": F1_score,
                    "TN": int(tn), "FP": int(fp), "FN": int(fn), "TP": int(tp),
-                   "TN %": int((tn / one_percent) * 100), "FP %": int((fp / one_percent) * 100),
-                   "FN %": int((fn / one_percent) * 100), "TP %": int((tp / one_percent) * 100)}
+                   "TN %": str((tn / one_percent)), "FP %": str((fp / one_percent)),
+                   "FN %": str((fn / one_percent)), "TP %": str((tp / one_percent))}
 
         # append model results to csv
         self._save_model_result_to_csv(metrics, training_settings)
@@ -294,7 +294,7 @@ class SiameseNet:
         file_exists = os.path.isfile(filename)
         with open(filename, 'a') as csvfile:
             headers = [*metrics.keys(), *train_settings.keys()]
-            writer = csv.DictWriter(csvfile, delimiter=';', lineterminator='\r\n', fieldnames=headers)
+            writer = csv.DictWriter(csvfile, fieldnames=headers, delimiter=';', lineterminator='\r\n')
 
             if not file_exists:
                 writer.writeheader()  # file doesn't exist yet, write a header
