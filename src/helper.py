@@ -3,6 +3,9 @@ import librosa
 from src.models.generators import SiameseGenerator
 from librosa import display
 import matplotlib.pyplot as plt
+import pandas as pd
+from tqdm import tqdm
+
 
 
 def get_audio_duration(audio_file_path: str):
@@ -82,3 +85,24 @@ def test_datagen():
                     y_axis='mel'
                 )
                 plt.show()
+
+
+def distribution_of_classes():
+    dataset_path = "data/external/speech_commands_v0.01"
+    train_labels = []
+    train_samples = []
+    # Loading all the waves and labels
+    for directory in os.scandir(dataset_path):
+        if directory.is_dir() and directory.name != '_background_noise_':
+            print(f"Processing class: {directory.name}")
+            for wav_file in os.scandir(directory):
+                if wav_file.name.endswith(".wav"):
+                    sample_rate, sample = librosa.load(wav_file.path)
+                    train_labels.append(directory.name)
+                    train_samples.append((sample))
+
+    train_pd = pd.DataFrame({'label': train_labels})
+    counts = train_pd["label"].value_counts()
+    plt.bar(counts.index, counts.values)
+    print(train_pd.label.unique())
+    plt.show()
