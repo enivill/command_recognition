@@ -97,12 +97,12 @@ def distribution_of_classes():
             print(f"Processing class: {directory.name}")
             for wav_file in os.scandir(directory):
                 if wav_file.name.endswith(".wav"):
-                    sample_rate, sample = librosa.load(wav_file.path)
+                    sample, sample_rate = librosa.load(wav_file.path, sr=16000)
                     train_labels.append(directory.name)
                     train_samples.append((sample))
 
     train_pd = pd.DataFrame({'label': train_labels})
     counts = train_pd["label"].value_counts()
-    plt.bar(counts.index, counts.values)
-    print(train_pd.label.unique())
+    fig = plt.figure(figsize=(7, 7))
+    plt.barh(y=counts.index, width=counts.values)
     plt.show()
