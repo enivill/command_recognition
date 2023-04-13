@@ -103,6 +103,12 @@ def distribution_of_classes():
 
     train_pd = pd.DataFrame({'label': train_labels})
     counts = train_pd["label"].value_counts()
-    fig = plt.figure(figsize=(7, 7))
+    fig = plt.figure(figsize=(15, 20))
     plt.barh(y=counts.index, width=counts.values)
+    plt.xlabel("počet", fontsize=20)
+    plt.ylabel("slová", fontsize=20)
+    plt.yticks(fontsize=20)
+    plt.xticks([i for i in range(1, 2700) if i % 300 == 0], fontsize=20)
+    plt.subplots_adjust(bottom=.1, left=.2)
+    plt.grid(visible=True, axis='x', color='green', linestyle='--', linewidth=0.7, alpha=0.7)
     plt.show()
