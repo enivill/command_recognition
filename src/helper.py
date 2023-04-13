@@ -99,7 +99,7 @@ def distribution_of_classes():
                 if wav_file.name.endswith(".wav"):
                     sample, sample_rate = librosa.load(wav_file.path, sr=16000)
                     train_labels.append(directory.name)
-                    train_samples.append((sample))
+                    train_samples.append(len(sample))
 
     train_pd = pd.DataFrame({'label': train_labels})
     counts = train_pd["label"].value_counts()
@@ -108,7 +108,33 @@ def distribution_of_classes():
     plt.xlabel("počet", fontsize=20)
     plt.ylabel("slová", fontsize=20)
     plt.yticks(fontsize=20)
-    plt.xticks([i for i in range(1, 2700) if i % 300 == 0], fontsize=20)
+    plt.xticks([i for i in range(1600, 2500) if i % 100 == 0], fontsize=20)
+    plt.xlim([1300, 2500])
     plt.subplots_adjust(bottom=.1, left=.2)
-    plt.grid(visible=True, axis='x', color='green', linestyle='--', linewidth=0.7, alpha=0.7)
+    plt.grid(visible=True, axis='x', color='green', linestyle='--', linewidth=0.8, alpha=0.7)
+    plt.show()
+
+    good_length = 0
+    less_length = 0
+    more_length = 0
+
+    for length in train_samples:
+        if length == 16000:
+            good_length += 1
+        elif length < 16000:
+            less_length += 1
+        else:
+             more_length += 1
+
+    x = [less_length, good_length, more_length]
+    labels = ['<16000', '16000', '>16000']
+    print(good_length)
+    print(less_length)
+    print(more_length)
+    fig = plt.figure(figsize=(15, 15))
+    plt.bar(x=labels, height=x)
+    plt.xlabel("dĺžka vzoriek", fontsize=20)
+    plt.ylabel("počet vzoriek", fontsize=20)
+    plt.yticks(fontsize=20)
+    plt.xticks(fontsize=20)
     plt.show()
