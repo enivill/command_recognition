@@ -80,7 +80,7 @@ def feature_extraction_dataset(feature_type: str, data: np.ndarray, root: str, s
 
     for file in tqdm(data):
         if file not in audio_feature_dict:
-            y, sr = load_audio(file, sample_rate, root)
+            y, sr = load_audio(os.path.join(root, file), sample_rate)
             if feature_type == 'mel':
                 audio_feature_dict[file] = mel(y, sr)
             elif feature_type == 'stft':
@@ -119,17 +119,16 @@ def fill_in_with_zeros(audio: np.ndarray, sample_rate: float) -> np.ndarray:
     return audio
 
 
-def load_audio(data_path: str, sr: int, raw_data_root: str) -> (np.ndarray, float):
+def load_audio(data_path: str, sr: int) -> (np.ndarray, float):
     """
     Load an audio file as a floating point time series.
     Audio will be automatically resampled to the given rate (default sr=22050).
     To preserve the native sampling rate of the file, use sr=None.
-    :param raw_data_root:
     :param sr:
     :param data_path:
     :return:
     """
-    y, sr = librosa.load(f"{raw_data_root}{data_path}", sr=sr)
+    y, sr = librosa.load(data_path, sr=sr)
     # Shorter audios fill in with zeros
     if len(y) < sr:
         y = fill_in_with_zeros(y, sr)

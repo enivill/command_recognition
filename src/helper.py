@@ -46,13 +46,12 @@ def find_sample_rate_outliers(dataset_path: str, normal_value: int) -> list:
             for file in os.scandir(directory):
                 if file.name.endswith(".wav"):
                     sr = librosa.get_samplerate(file.path)
-                    print(sr)
                     if sr != normal_value:
                         outliers.append((sr, file.path))
     return outliers
 
 
-def test_datagen():
+def _test_datagen():
     """
     With this function you can test if custom data generator works as expected.
     :return:
@@ -88,6 +87,17 @@ def test_datagen():
 
 
 def distribution_of_classes():
+    """
+    First figure plots the count of each word in the dataset.
+    The second figure plots the audio lengths.
+        There are 3 bars, in the first one is the number of audios which have shorter sample lengths than 1 second,
+        the second bar shows the number of audios, which has exactly 1 second length,
+        the 3rd bar are audios, which are longer than 1 sec.
+    The length is set to 16000, because we work with the sample rate of 16kHz. 16000/16000 = 1 sec.
+    If a sample has for example 14500 sample length, it means that its length in seconds is 54.375 .
+    14500/16000=0.90625; 60*0.90625 = 54.375
+    :return:
+    """
     dataset_path = "data/external/speech_commands_v0.01"
     train_labels = []
     train_samples = []
@@ -127,10 +137,10 @@ def distribution_of_classes():
              more_length += 1
 
     x = [less_length, good_length, more_length]
-    labels = ['<16000', '16000', '>16000']
-    print(good_length)
-    print(less_length)
-    print(more_length)
+    labels = ['menej ako 1 sekunda', '1 sekunda', 'viac ako 1 sekunda']
+    print(f"Samples with one second length: {good_length}")
+    print(f"Samples with less than one second length: {less_length}")
+    print(f"Samples with more than one second length: {more_length}")
     fig = plt.figure(figsize=(15, 15))
     plt.bar(x=labels, height=x)
     plt.xlabel("dĺžka vzoriek", fontsize=20)
