@@ -2,7 +2,8 @@ import json
 import warnings
 import matplotlib.pyplot as plt
 from keras.api._v2.keras.models import Model, load_model
-from keras.api._v2.keras.layers import Dense, Dropout, Input, Flatten, Convolution2D, MaxPooling2D, Layer
+from keras.api._v2.keras.layers import Dense, Dropout, Input, Flatten, Convolution2D, MaxPooling2D, Layer, \
+    BatchNormalization
 from keras.api._v2.keras.optimizers import Adam
 from keras.api._v2.keras import backend as K
 from keras.api._v2.keras.callbacks import ModelCheckpoint, CSVLogger, Callback, ReduceLROnPlateau
@@ -22,6 +23,7 @@ import yaml
 from pandas import read_csv
 import time
 import csv
+from src.features.build_features import feature_extraction
 
 warnings.filterwarnings('ignore')
 
@@ -29,14 +31,11 @@ LOG = get_logger('SiameseNet')
 
 
 class SiameseNet:
-    def __init__(self, shape):
+    def __init__(self):
         self.config = my_config.get_config()
         self.epochs = self.config['train']['epochs']
         self.batch_size = self.config['train']['batch_size']
-        # self.input_dim_a = self.config['input_dim_a']
-        # self.input_dim_b = self.config['input_dim_b']
-        self.input_dim_a = shape[0]
-        self.input_dim_b = shape[1]
+        self.input_dim_a, self.input_dim_b = self._get_feature_shape(self.config)
         self.input_channels = 1
         self.datagen_val = None
         self.datagen_train = None
@@ -67,17 +66,28 @@ class SiameseNet:
         processed_a = self.identical_subnetwork(input_a)
         processed_b = self.identical_subnetwork(input_b)
         outputs_shape = self.config["layers"]["dns"]["units"][-1]  # the unit of the last dense layer
-        distance = DistanceLayer(k=outputs_shape, name='contrast_function')([processed_a, processed_b])
-        # dense = Dense(units=outputs_shape//2, activation='relu')(distance)
-        output = Dense(1, activation='sigmoid', name='output_layer')(distance)  # relu or sigmoid
+        model = DistanceLayer(k=outputs_shape, name='contrast_function')([processed_a, processed_b])
+        denses_after_distance = self.config['layers']['after_distance']['dns']
+
+        # dense layers
+        for idx in range(denses_after_distance['num_of_layers']):
+            model = Dense(units=denses_after_distance['units'][idx],
+                          activation=denses_after_distance['activation'][idx])(model)
+            if denses_after_distance['batchnorm'][idx] is True:
+                model = BatchNormalization()(model)
+            if denses_after_distance['dropout'][idx] is not None:
+                model = Dropout(denses_after_distance['dropout'][idx])(model)
+
+        output = Dense(1, activation='sigmoid', name='output_layer')(model)  # relu or sigmoid
 
         self.model = Model(inputs=[input_a, input_b], outputs=output)
         print(self.model.summary())
         plot_model(self.model, to_file=os.path.join(self.logdir, "model.png"), show_shapes=True, show_layer_names=True,
                    show_layer_activations=True)
         plot_model(self.model, to_file=os.path.join(self.logdir, "model_expand_nested.png"), show_shapes=True,
-                   show_layer_names=True, expand_nested=True,
-                   show_layer_activations=True)
+                   show_layer_names=True, expand_nested=True, show_layer_activations=True)
+        plot_model(self.model, to_file=os.path.join(self.logdir, "model_simple.png"), show_shapes=False,
+                   show_layer_names=False, expand_nested=True, show_layer_activations=False)
         self.trainable_count = count_params(self.model.trainable_weights)
 
     def _identical_subnetwork(self):
@@ -86,11 +96,12 @@ class SiameseNet:
 
         cnn = layers_config['cnn']
         denses = layers_config['dns']
-        flatten = layers_config['flt']
 
-        # first layer of convolution2D
+        # first layer of convolution2D, there should always be at least one convolutioanal layer
         model = Convolution2D(filters=cnn['conv']['filters'][0], kernel_size=cnn['conv']['kernel'][0],
-                              strides=cnn['conv']['stride'][0], activation=cnn['conv']['activation'][0])(inputs)
+                              strides=cnn['conv']['stride'][0], activation=cnn['conv']['activation'][0], padding='same')(inputs)
+        if cnn['batchnorm'][0] is True:
+            model = BatchNormalization()(model)
         if cnn['dropout'][0] is not None:
             model = Dropout(cnn['dropout'][0])(model)
         if cnn['pool']['size'][0] is not None:
@@ -98,22 +109,26 @@ class SiameseNet:
 
         # additional layers
         for idx in range(cnn['num_of_layers'])[1:]:
-            if cnn['dropout'][idx] is not None:
-                model = Convolution2D(filters=cnn['conv']['filters'][idx], kernel_size=cnn['conv']['kernel'][idx],
-                                      strides=cnn['conv']['stride'][idx], activation=cnn['conv']['activation'][idx])(
-                    model)
+            model = Convolution2D(filters=cnn['conv']['filters'][idx],
+                                  kernel_size=cnn['conv']['kernel'][idx],
+                                  strides=cnn['conv']['stride'][idx],
+                                  activation=cnn['conv']['activation'][idx],
+                                  padding='same')(model)
+            if cnn['batchnorm'][idx] is True:
+                model = BatchNormalization()(model)
             if cnn['dropout'][idx] is not None:
                 model = Dropout(cnn['dropout'][idx])(model)
             if cnn['pool']['size'][idx] is not None:
                 model = MaxPooling2D(pool_size=cnn['pool']['size'][idx], strides=cnn['pool']['stride'][idx])(model)
 
         # flatten
-        if flatten is True:
-            model = Flatten()(model)
+        model = Flatten()(model)
 
         # dense layers
         for idx in range(denses['num_of_layers']):
             model = Dense(units=denses['units'][idx], activation=denses['activation'][idx])(model)
+            if denses['batchnorm'][idx] is True:
+                model = BatchNormalization()(model)
             if denses['dropout'][idx] is not None:
                 model = Dropout(denses['dropout'][idx])(model)
 
@@ -197,6 +212,10 @@ class SiameseNet:
         plt.ylabel('accuracy')
         plt.xlabel('epoch')
         plt.legend(['train', 'validation'], loc='upper left')
+        plt.annotate('%0.2f' % self.history.history['binary_accuracy'][-1], xy=(1, self.history.history['binary_accuracy'][-1]), xytext=(8, 0),
+                     xycoords=('axes fraction', 'data'), textcoords='offset points', color='C0')
+        plt.annotate('%0.2f' % self.history.history['val_binary_accuracy'][-1], xy=(1, self.history.history['val_binary_accuracy'][-1]), xytext=(8, 0),
+                     xycoords=('axes fraction', 'data'), textcoords='offset points', color='C1')
         plt.savefig(os.path.join(self.logdir, 'accuracy.png'))
         plt.close(fig)
         # summarize history for loss
@@ -207,6 +226,12 @@ class SiameseNet:
         plt.ylabel('loss')
         plt.xlabel('epoch')
         plt.legend(['train', 'validation'], loc='upper left')
+        plt.annotate('%0.2f' % self.history.history['loss'][-1],
+                     xy=(1, self.history.history['loss'][-1]), xytext=(8, 0),
+                     xycoords=('axes fraction', 'data'), textcoords='offset points', color='C0')
+        plt.annotate('%0.2f' % self.history.history['val_loss'][-1],
+                     xy=(1, self.history.history['val_loss'][-1]), xytext=(8, 0),
+                     xycoords=('axes fraction', 'data'), textcoords='offset points', color='C1')
         plt.savefig(os.path.join(self.logdir, 'loss.png'))
 
     def evaluate(self):
@@ -258,13 +283,12 @@ class SiameseNet:
                              'cnn_batch_norm': self.config['layers']['cnn']['batchnorm'],
                              'cnn_pool_size': self.config['layers']['cnn']['pool']['size'],
                              'cnn_pool_stride': self.config['layers']['cnn']['pool']['stride'],
-                             'flatten': self.config['layers']['flt'],
                              'dns_units': self.config['layers']['dns']['units'],
                              'dns_activation': self.config['layers']['dns']['activation'],
                              'dns_dropout': self.config['layers']['dns']['dropout'],
-                             'after_distance_dns_unit': self.config['after_distance']['dns']['units'],
-                             'after_distance_dns_act': self.config['after_distance']['dns']['activation'],
-                             'after_distance_dns_drop': self.config['after_distance']['dns']['dropout']}
+                             'after_distance_dns_unit': self.config['layers']['after_distance']['dns']['units'],
+                             'after_distance_dns_act': self.config['layers']['after_distance']['dns']['activation'],
+                             'after_distance_dns_drop': self.config['layers']['after_distance']['dns']['dropout']}
 
         metrics = {"Time(H:M:S)": self.training_time, "Params": self.trainable_count,
                    "Test loss": scores[0], "Test accuracy": scores[1],
@@ -308,6 +332,14 @@ class SiameseNet:
                    show_layer_names=True,
                    show_layer_activations=True, expand_nested=True)
 
+    def _get_feature_shape(self, config):
+        with open(f'{config["paths"]["pairs_root"]}{config["paths"]["pairs_name"]["train"]}', newline='') as f:
+            csv_reader = csv.reader(f, delimiter=';')
+            csv_headings = next(csv_reader)
+            first_line = next(csv_reader)
+        feature = feature_extraction(first_line[0])
+        return feature.shape
+
 
 @tf.keras.utils.register_keras_serializable()
 class DistanceLayer(Layer):
@@ -328,6 +360,7 @@ class DistanceLayer(Layer):
     def call(self, inputs):
         x, y = inputs
         return K.abs(x - y)
+        # return K.square(x-y)
 
 
 # source: https://github.com/Trotts/Siamese-Neural-Network-MNIST-Triplet-Loss/blob/main/Siamese-Neural-Network-MNIST.ipynb

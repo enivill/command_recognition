@@ -18,6 +18,8 @@ def mel(y: np.ndarray, sr: float) -> np.ndarray:
     # sr_load = 16000  # sample rate
     n_fft, window_length, hop_length = calculate_nfft_wl_hl()
     n_mels = config['n_mels']
+    f_min = config['f_min']
+    f_max = config['f_max']
 
     mel_spectrogram = librosa.feature.melspectrogram(
         y=y,
@@ -25,7 +27,9 @@ def mel(y: np.ndarray, sr: float) -> np.ndarray:
         n_fft=n_fft,
         hop_length=hop_length,
         win_length=window_length,
-        n_mels=n_mels
+        n_mels=n_mels,
+        fmin=f_min,
+        fmax=f_max
     )
     mel_spectrogram_decibel = librosa.power_to_db(mel_spectrogram, ref=np.max)
 
@@ -95,7 +99,7 @@ def feature_extraction_dataset(feature_type: str, data: np.ndarray, root: str, s
 def feature_extraction(file: str) -> np.ndarray:
     config = my_config.get_config()
 
-    y, sr = load_audio(file, config['feature_extraction']['sample_rate'], config['paths']['raw_data_root'])
+    y, sr = load_audio(os.path.join(config['paths']['raw_data_root'], file), config['feature_extraction']['sample_rate'])
     if config['train']['feature_type'] == 'mel':
         audio_feature = mel(y, sr)
     elif config['train']['feature_type'] == 'stft':

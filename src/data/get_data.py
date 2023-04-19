@@ -21,7 +21,7 @@ FILENAME_ERROR = "ERROR: Filename should not be empty."
 UNKNOWN_FORMAT = "ERROR: Unknown file format. Can't extract."
 
 # TODO test if it works properly
-def download_dataset(url: str, target_path: str = "data/external2/", keep_download: bool = True,
+def download_dataset(url: str, target_path: str = "data/external/", keep_download: bool = True,
                      overwrite_download: bool = True):
     """Downloads dataset from a url.
     url: string, a dataset path

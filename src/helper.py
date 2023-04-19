@@ -86,7 +86,7 @@ def _test_datagen():
                 plt.show()
 
 
-def distribution_of_classes():
+def distribution_of_classes(dataset_path: str):
     """
     First figure plots the count of each word in the dataset.
     The second figure plots the audio lengths.
@@ -98,7 +98,6 @@ def distribution_of_classes():
     14500/16000=0.90625; 60*0.90625 = 54.375
     :return:
     """
-    dataset_path = "data/external/speech_commands_v0.01"
     train_labels = []
     train_samples = []
     # Loading all the waves and labels
@@ -113,15 +112,16 @@ def distribution_of_classes():
 
     train_pd = pd.DataFrame({'label': train_labels})
     counts = train_pd["label"].value_counts()
-    fig = plt.figure(figsize=(15, 20))
-    plt.barh(y=counts.index, width=counts.values)
-    plt.xlabel("počet", fontsize=20)
-    plt.ylabel("slová", fontsize=20)
-    plt.yticks(fontsize=20)
-    plt.xticks([i for i in range(1600, 2500) if i % 100 == 0], fontsize=20)
-    plt.xlim([1300, 2500])
+    print(counts)
+    fig = plt.figure(figsize=(30, 20))
+    plt.bar(x=counts.index, height=counts.values)
+    plt.xlabel("slová", fontsize=20)
+    plt.ylabel("počet", fontsize=20)
+    plt.xticks(fontsize=20, rotation=45)
+    plt.yticks([i for i in range(1500, 4200) if i % 100 == 0], fontsize=20)
+    plt.ylim([1400, 4100])
     plt.subplots_adjust(bottom=.1, left=.2)
-    plt.grid(visible=True, axis='x', color='green', linestyle='--', linewidth=0.8, alpha=0.7)
+    plt.grid(visible=True, axis='y', color='green', linestyle='--', linewidth=0.8, alpha=0.7)
     plt.show()
 
     good_length = 0

@@ -1,0 +1,70 @@
+paths:
+  raw_data_root: data/external/speech_commands_v0.02/
+  dataset_root: data/datasets/data_version2/without_outliers/
+  pairs_root: data/pairs/data_version2/without_outliers_w500/
+  dataset_name:
+    train: train.txt
+    val: val.txt
+    test: test.txt
+  pairs_name:
+    train: train_pairs.csv
+    val: val_pairs.csv
+    test: test_pairs.csv
+  results_csv: model_results.csv
+
+make_pairs:
+  word_per_class_train: 500
+
+feature_extraction:
+  sample_rate: 16000
+  window_length_seconds: 20
+  hop_length_seconds: 10
+  n_mels: 26
+  f_min: 200
+  f_max: 4000
+
+
+train:
+  log:
+    dir: models/4kHz/
+    name:  experiment1/
+  batch_size: 128
+  epochs: 60
+  feature_type: mel   # mfcc, stft, mel
+  learning_rate: 0.001
+
+
+layers:
+  cnn:
+    num_of_layers: 4
+    conv:
+      filters: [32, 64, 128, 256]
+      kernel: [3,3,3,3]
+      stride: [1,1,1,1]
+      activation: ['relu', 'relu', 'relu', 'relu']
+    batchnorm: [True, True, True, False]
+    dropout: [0.25, 0.25,0.25, null]
+    pool:
+      size: [2,2,2,2]
+      stride: [2,2,2,2]
+  flt: True
+  GlobalAveragePooling: False
+  dns:
+    num_of_layers: 1
+    units: [256]
+    activation: [ "relu"]
+    batchnorm: [True]
+    dropout: [0.5]
+  after_distance:
+    dns:
+      num_of_layers: 0
+      units: []
+      activation: []
+      batchnorm: []
+      dropout: []
+
+
+
+
+
+
