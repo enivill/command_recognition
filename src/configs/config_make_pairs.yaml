@@ -1,0 +1,102 @@
+
+make_pairs:
+  percentage:
+    test: 10
+    train: 70
+    val: 20
+  order:
+    - train
+  word_per_class_train: 500
+  excluded_classes:
+    test:
+      - backward
+      - forward
+      - down
+      - one
+      - two
+      - three
+      - four
+      - five
+      - six
+      - seven
+      - eight
+      - nine
+      - follow
+      - go
+      - learn
+      - left
+      - 'no'
+      - 'off'
+      - right
+      - stop
+      - up
+      - visual
+      - 'yes'
+      - zero
+      - 'on'
+    train:
+      - backward
+      - forward
+      - down
+      - one
+      - two
+      - three
+      - four
+      - five
+      - six
+      - seven
+      - eight
+      - nine
+      - follow
+      - go
+      - learn
+      - left
+      - 'no'
+      - 'off'
+      - right
+      - stop
+      - up
+      - visual
+      - 'yes'
+      - zero
+      - 'on'
+    val:
+      - backward
+      - forward
+      - down
+      - one
+      - two
+      - three
+      - four
+      - five
+      - six
+      - seven
+      - eight
+      - nine
+      - follow
+      - go
+      - learn
+      - left
+      - 'no'
+      - 'off'
+      - right
+      - stop
+      - up
+      - visual
+      - 'yes'
+      - zero
+      - 'on'
+
+paths:
+  dataset_name:
+    test: test.txt
+    train: train.txt
+    val: val.txt
+  dataset_root: data/datasets/data_version2/without_outliers/
+  pairs_name:
+    test: test_pairs.csv
+    train: train_pairs.csv
+    val: val_pairs.csv
+  pairs_root: data/pairs/data_version2/without_outliers_not_seen_words/
+  raw_data_root: data/external/speech_commands_v0.02/
+

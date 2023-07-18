@@ -1,10 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import soundfile as sf
-import os
 import librosa
 from src.features.build_features import load_audio
-
 
 
 def print_audio_information(

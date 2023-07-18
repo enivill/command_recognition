@@ -1,0 +1,62 @@
+paths:
+  raw_data_root: data/external/speech_commands_v0.02/
+  dataset_root: data/datasets/data_version2/without_outliers/
+  pairs_root: data/pairs/data_version2/without_outliers_wAll/
+  dataset_name:
+    train: train.txt
+    val: val.txt
+    test: test.txt
+  pairs_name:
+    train: train_pairs.csv
+    val: val_pairs.csv
+    test: test_pairs.csv
+  results_csv: model_results.csv
+  features_path: data/features/mel40_wl20_hl10_fmin0_fmax8000_sr16000/
+
+make_pairs:
+  word_per_class_train: ""
+
+feature_extraction:
+  sample_rate: 16000
+  window_length_seconds: 20
+  hop_length_seconds: 10
+  n_mels: 40
+  f_min: 0
+  f_max: 8000
+
+train:
+  log:
+    dir: models/all_the_data/mel40_8000/con_act_pool_batch/
+    name:
+  batch_size: 128
+  epochs: 100
+  feature_type: mel   # mfcc, stft, mel
+  learning_rate: 0.001
+  early_stopping_patience: 12
+  early_stopping_min_delta: 0.0001
+  reduce_lr_patience: 8
+
+
+layers:
+  cnn:
+    conv:
+      filters:
+      kernel:
+      stride:
+      activation: relu
+    batchnorm:
+    dropout:
+    pool:
+      size:
+      stride:
+  dns:
+    units: [100, 50]
+    activation: relu
+    batchnorm: [ false, false]
+    dropout: [ 0.4, null]
+  after_distance:
+    dns:
+      units: []
+      activation: []
+      batchnorm: []
+      dropout: []

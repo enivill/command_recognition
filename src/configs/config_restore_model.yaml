@@ -1,0 +1,26 @@
+paths:
+  raw_data_root: data/external/speech_commands_v0.02/
+  dataset_root: data/datasets/data_version2/without_outliers/
+  pairs_root: data/pairs/data_version2/without_outliers_not_seen_words/
+  pairs_name:
+    train: train_pairs.csv
+    val: val_pairs.csv
+    test: test_pairs.csv
+  results_csv: model_results.csv
+  features_path: data/features/mel40_wl20_hl10_fmin0_fmax8000_sr16000/
+  restore_model: models/all_the_data/mel40_8000/con_act_pool_batch/cnn6_id37_2/model.h5
+
+feature_extraction:
+  sample_rate: 16000
+  window_length_seconds: 20
+  hop_length_seconds: 10
+  n_mels: 40
+  f_min: 0
+  f_max: 8000
+
+train:
+  log:
+    dir: models/test_not_seen_words/
+    name: cnn6_id37_2/
+  batch_size: 256
+  feature_type: mel   # mfcc, stft, mel

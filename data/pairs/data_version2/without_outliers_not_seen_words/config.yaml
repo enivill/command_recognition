@@ -1,0 +1,86 @@
+excluded_classes:
+  test:
+  - backward
+  - forward
+  - down
+  - one
+  - two
+  - three
+  - four
+  - five
+  - six
+  - seven
+  - eight
+  - nine
+  - follow
+  - go
+  - learn
+  - left
+  - 'no'
+  - 'off'
+  - right
+  - stop
+  - up
+  - visual
+  - 'yes'
+  - zero
+  - 'on'
+  train:
+  - backward
+  - forward
+  - down
+  - one
+  - two
+  - three
+  - four
+  - five
+  - six
+  - seven
+  - eight
+  - nine
+  - follow
+  - go
+  - learn
+  - left
+  - 'no'
+  - 'off'
+  - right
+  - stop
+  - up
+  - visual
+  - 'yes'
+  - zero
+  - 'on'
+  val:
+  - backward
+  - forward
+  - down
+  - one
+  - two
+  - three
+  - four
+  - five
+  - six
+  - seven
+  - eight
+  - nine
+  - follow
+  - go
+  - learn
+  - left
+  - 'no'
+  - 'off'
+  - right
+  - stop
+  - up
+  - visual
+  - 'yes'
+  - zero
+  - 'on'
+order:
+- train
+percentage:
+  test: 10
+  train: 70
+  val: 20
+word_per_class_train: 500

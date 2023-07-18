@@ -3,13 +3,14 @@ import warnings
 import matplotlib.pyplot as plt
 from keras.api._v2.keras.models import Model, load_model
 from keras.api._v2.keras.layers import Dense, Dropout, Input, Flatten, Convolution2D, MaxPooling2D, Layer, \
-    BatchNormalization
+    BatchNormalization, Activation
 from keras.api._v2.keras.optimizers import Adam
 from keras.api._v2.keras import backend as K
 from keras.api._v2.keras.callbacks import ModelCheckpoint, CSVLogger, Callback, ReduceLROnPlateau
 from keras.api._v2.keras.metrics import BinaryAccuracy
 from keras.api._v2.keras.losses import BinaryCrossentropy
 from keras.api._v2.keras.utils import plot_model
+from keras.api._v2.keras.activations import gelu, relu
 from sklearn.metrics import classification_report, accuracy_score, f1_score, precision_score, recall_score, \
     ConfusionMatrixDisplay, confusion_matrix
 import tensorflow as tf
@@ -31,20 +32,22 @@ LOG = get_logger('SiameseNet')
 
 
 class SiameseNet:
-    def __init__(self):
+    def __init__(self, restore_model: bool = False):
         self.config = my_config.get_config()
-        self.epochs = self.config['train']['epochs']
-        self.batch_size = self.config['train']['batch_size']
-        self.input_dim_a, self.input_dim_b = self._get_feature_shape(self.config)
-        self.input_channels = 1
-        self.datagen_val = None
-        self.datagen_train = None
-        self.identical_subnetwork = None
+        self.restore_model = restore_model
+        if not self.restore_model:
+            self.epochs = self.config['train']['epochs']
+            self.input_dim_a, self.input_dim_b = self._get_feature_shape(self.config)
+            self.input_channels = 1
+            self.datagen_val = None
+            self.datagen_train = None
+            self.identical_subnetwork = None
+            self.callbacks = []
+            self.history = None
+            self.training_time = None
+            self.trainable_count = None
         self.model = None
-        self.callbacks = []
-        self.history = None
-        self.training_time = None
-        self.trainable_count = None
+        self.batch_size = self.config['train']['batch_size']
         self.logdir = os.path.join(self.config['train']['log']['dir'], self.config['train']['log']['name'])
         if not os.path.exists(self.logdir):
             os.mkdir(self.logdir)
@@ -70,7 +73,7 @@ class SiameseNet:
         denses_after_distance = self.config['layers']['after_distance']['dns']
 
         # dense layers
-        for idx in range(denses_after_distance['num_of_layers']):
+        for idx in range(len(denses_after_distance['units'])):
             model = Dense(units=denses_after_distance['units'][idx],
                           activation=denses_after_distance['activation'][idx])(model)
             if denses_after_distance['batchnorm'][idx] is True:
@@ -96,37 +99,45 @@ class SiameseNet:
 
         cnn = layers_config['cnn']
         denses = layers_config['dns']
-
-        # first layer of convolution2D, there should always be at least one convolutioanal layer
-        model = Convolution2D(filters=cnn['conv']['filters'][0], kernel_size=cnn['conv']['kernel'][0],
-                              strides=cnn['conv']['stride'][0], activation=cnn['conv']['activation'][0], padding='same')(inputs)
-        if cnn['batchnorm'][0] is True:
-            model = BatchNormalization()(model)
-        if cnn['dropout'][0] is not None:
-            model = Dropout(cnn['dropout'][0])(model)
-        if cnn['pool']['size'][0] is not None:
-            model = MaxPooling2D(pool_size=cnn['pool']['size'][0], strides=cnn['pool']['stride'][0])(model)
+        model = inputs
+        # # first layer of convolution2D, there should always be at least one convolutional layer
+        # model = Convolution2D(filters=cnn['conv']['filters'][0], kernel_size=cnn['conv']['kernel'][0],
+        #                       strides=cnn['conv']['stride'][0], activation=cnn['conv']['activation'][0], padding='same')(inputs)
+        # if cnn['pool']['size'][0] is not None:
+        #     model = MaxPooling2D(pool_size=cnn['pool']['size'][0], strides=cnn['pool']['stride'][0], padding='same')(model)
+        # if cnn['batchnorm'][0] is True:
+        #     model = BatchNormalization()(model)
+        # if cnn['dropout'][0] is not None:
+        #     model = Dropout(cnn['dropout'][0])(model)
 
         # additional layers
-        for idx in range(cnn['num_of_layers'])[1:]:
+        for idx in range(len(cnn['conv']['filters'])):
+            # conv layer
             model = Convolution2D(filters=cnn['conv']['filters'][idx],
                                   kernel_size=cnn['conv']['kernel'][idx],
                                   strides=cnn['conv']['stride'][idx],
-                                  activation=cnn['conv']['activation'][idx],
+                                  # activation=cnn['conv']['activation'],
                                   padding='same')(model)
+
+            # Activation function
+            model = Activation(relu)(model)
+            # pooling
+            if cnn['pool']['size'][idx] is not None:
+                model = MaxPooling2D(pool_size=cnn['pool']['size'][idx], strides=cnn['pool']['stride'][idx],
+                                     padding='same')(model)
+            # batch normalization
             if cnn['batchnorm'][idx] is True:
                 model = BatchNormalization()(model)
+            # dropout
             if cnn['dropout'][idx] is not None:
                 model = Dropout(cnn['dropout'][idx])(model)
-            if cnn['pool']['size'][idx] is not None:
-                model = MaxPooling2D(pool_size=cnn['pool']['size'][idx], strides=cnn['pool']['stride'][idx])(model)
 
         # flatten
         model = Flatten()(model)
 
         # dense layers
-        for idx in range(denses['num_of_layers']):
-            model = Dense(units=denses['units'][idx], activation=denses['activation'][idx])(model)
+        for idx in range(len(denses['units'])):
+            model = Dense(units=denses['units'][idx], activation=denses['activation'])(model)
             if denses['batchnorm'][idx] is True:
                 model = BatchNormalization()(model)
             if denses['dropout'][idx] is not None:
@@ -136,7 +147,7 @@ class SiameseNet:
 
     def train(self):
         LOG.info('Loading train dataset to DataGenerator...')
-        self.datagen_train = SiameseGenerator('train')
+        self.datagen_train = SiameseGenerator('train', shuffle=True)
         LOG.info('Loading validation dataset to DataGenerator...')
         self.datagen_val = SiameseGenerator('val', shuffle=False)
 
@@ -145,10 +156,12 @@ class SiameseNet:
         # Only save the best model weights based on the val_loss
         checkpoint = ModelCheckpoint(os.path.join(self.logdir, 'snn_model_best.h5'),
                                      monitor='val_loss', save_best_only=True, verbose=1, mode='min')
-        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', patience=5, verbose=1,
-                                                          min_delta=1e-3)
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', mode='min',
+                                                          patience=self.config['train']['early_stopping_patience'],
+                                                          verbose=1,
+                                                          min_delta=self.config['train']['early_stopping_min_delta'])
         reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
-                                      patience=3, min_lr=0.00001, verbose=1)
+                                      patience=self.config['train']['reduce_lr_patience'], min_lr=1e-5, verbose=1)
         # Training logger
         csv_logger = CSVLogger(os.path.join(self.logdir, 'training.csv'), separator=',', append=True)
         # Save the embedding model weights if you save a new snn best model based on the model checkpoint above
@@ -212,9 +225,11 @@ class SiameseNet:
         plt.ylabel('accuracy')
         plt.xlabel('epoch')
         plt.legend(['train', 'validation'], loc='upper left')
-        plt.annotate('%0.2f' % self.history.history['binary_accuracy'][-1], xy=(1, self.history.history['binary_accuracy'][-1]), xytext=(8, 0),
+        plt.annotate('%0.2f' % self.history.history['binary_accuracy'][-1],
+                     xy=(1, self.history.history['binary_accuracy'][-1]), xytext=(8, 0),
                      xycoords=('axes fraction', 'data'), textcoords='offset points', color='C0')
-        plt.annotate('%0.2f' % self.history.history['val_binary_accuracy'][-1], xy=(1, self.history.history['val_binary_accuracy'][-1]), xytext=(8, 0),
+        plt.annotate('%0.2f' % self.history.history['val_binary_accuracy'][-1],
+                     xy=(1, self.history.history['val_binary_accuracy'][-1]), xytext=(8, 0),
                      xycoords=('axes fraction', 'data'), textcoords='offset points', color='C1')
         plt.savefig(os.path.join(self.logdir, 'accuracy.png'))
         plt.close(fig)
@@ -241,8 +256,7 @@ class SiameseNet:
 
         scores = self.model.evaluate(x=datagen_test_eval, steps=len(datagen_test_eval), verbose=1)  # steps=16
 
-        print(dict(zip(self.model.metrics_names, scores)))
-
+        # print(dict(zip(self.model.metrics_names, scores)))
         print('Test loss:', scores[0])
         print('Test accuracy:', scores[1])
 
@@ -267,36 +281,46 @@ class SiameseNet:
         tn, fp, fn, tp = confusion_matrix(true_y, pred_y).ravel()
         one_percent = (tn + fp + fn + tp) / 100
 
-        training_settings = {'model_path': self.config['train']['log']['name'],
-                             'word_per_class': self.config['make_pairs']['word_per_class_train'],
-                             'sr': self.config['feature_extraction']['sample_rate'],
-                             'wl': self.config['feature_extraction']['window_length_seconds'],
-                             'hl': self.config['feature_extraction']['hop_length_seconds'],
-                             'mels': self.config['feature_extraction']['n_mels'],
-                             'f_min': self.config['feature_extraction']['f_min'],
-                             'f_max': self.config['feature_extraction']['f_max'],
-                             'cnn_filters': self.config['layers']['cnn']['conv']['filters'],
-                             'cnn_kernel': self.config['layers']['cnn']['conv']['kernel'],
-                             'cnn_stride': self.config['layers']['cnn']['conv']['stride'],
-                             'cnn_activation': self.config['layers']['cnn']['conv']['activation'],
-                             'cnn_dropout': self.config['layers']['cnn']['dropout'],
-                             'cnn_batch_norm': self.config['layers']['cnn']['batchnorm'],
-                             'cnn_pool_size': self.config['layers']['cnn']['pool']['size'],
-                             'cnn_pool_stride': self.config['layers']['cnn']['pool']['stride'],
-                             'dns_units': self.config['layers']['dns']['units'],
-                             'dns_activation': self.config['layers']['dns']['activation'],
-                             'dns_dropout': self.config['layers']['dns']['dropout'],
-                             'after_distance_dns_unit': self.config['layers']['after_distance']['dns']['units'],
-                             'after_distance_dns_act': self.config['layers']['after_distance']['dns']['activation'],
-                             'after_distance_dns_drop': self.config['layers']['after_distance']['dns']['dropout']}
-
-        metrics = {"Time(H:M:S)": self.training_time, "Params": self.trainable_count,
-                   "Test loss": scores[0], "Test accuracy": scores[1],
-                   "Accuracy": Accuracy, "Precision": Precision,
-                   "Sensitivity_recall": Sensitivity_recall, "Specificity": Specificity, "F1": F1_score,
-                   "TN": int(tn), "FP": int(fp), "FN": int(fn), "TP": int(tp),
-                   "TN %": str((tn / one_percent)), "FP %": str((fp / one_percent)),
-                   "FN %": str((fn / one_percent)), "TP %": str((tp / one_percent))}
+        if not self.restore_model:
+            training_settings = {'model_path': self.config['train']['log']['name'],
+                                 'word_per_class': self.config['make_pairs']['word_per_class_train'],
+                                 'sr': self.config['feature_extraction']['sample_rate'],
+                                 'wl': self.config['feature_extraction']['window_length_seconds'],
+                                 'hl': self.config['feature_extraction']['hop_length_seconds'],
+                                 'mels': self.config['feature_extraction']['n_mels'],
+                                 'f_min': self.config['feature_extraction']['f_min'],
+                                 'f_max': self.config['feature_extraction']['f_max'],
+                                 'cnn_filters': self.config['layers']['cnn']['conv']['filters'],
+                                 'cnn_kernel': self.config['layers']['cnn']['conv']['kernel'],
+                                 'cnn_stride': self.config['layers']['cnn']['conv']['stride'],
+                                 'cnn_activation': self.config['layers']['cnn']['conv']['activation'],
+                                 'cnn_dropout': self.config['layers']['cnn']['dropout'],
+                                 'cnn_batch_norm': self.config['layers']['cnn']['batchnorm'],
+                                 'cnn_pool_size': self.config['layers']['cnn']['pool']['size'],
+                                 'cnn_pool_stride': self.config['layers']['cnn']['pool']['stride'],
+                                 'dns_units': self.config['layers']['dns']['units'],
+                                 'dns_activation': self.config['layers']['dns']['activation'],
+                                 'dns_dropout': self.config['layers']['dns']['dropout'],
+                                 'after_distance_dns_unit': self.config['layers']['after_distance']['dns']['units'],
+                                 'after_distance_dns_act': self.config['layers']['after_distance']['dns']['activation'],
+                                 'after_distance_dns_drop': self.config['layers']['after_distance']['dns']['dropout']}
+        else:
+            training_settings = {'model_path': self.config['paths']['restore_model']}
+        if not self.restore_model:
+            metrics = {"Time(H:M:S)": self.training_time, "Params": self.trainable_count,
+                       "Test loss": scores[0],
+                       "Accuracy": Accuracy, "Precision": Precision,
+                       "Sensitivity_recall": Sensitivity_recall, "Specificity": Specificity, "F1": F1_score,
+                       "TN": int(tn), "FP": int(fp), "FN": int(fn), "TP": int(tp),
+                       "TN %": str((tn / one_percent)), "FP %": str((fp / one_percent)),
+                       "FN %": str((fn / one_percent)), "TP %": str((tp / one_percent)), "Test accuracy": scores[1]*100}
+        else:
+            metrics = {"Test loss": scores[0], "Test accuracy": scores[1],
+                       "Accuracy": Accuracy, "Precision": Precision,
+                       "Sensitivity_recall": Sensitivity_recall, "Specificity": Specificity, "F1": F1_score,
+                       "TN": int(tn), "FP": int(fp), "FN": int(fn), "TP": int(tp),
+                       "TN %": str((tn / one_percent)), "FP %": str((fp / one_percent)),
+                       "FN %": str((fn / one_percent)), "TP %": str((tp / one_percent))}
 
         # append model results to csv
         self._save_model_result_to_csv(metrics, training_settings)
@@ -318,15 +342,16 @@ class SiameseNet:
         file_exists = os.path.isfile(filename)
         with open(filename, 'a') as csvfile:
             headers = [*metrics.keys(), *train_settings.keys()]
-            writer = csv.DictWriter(csvfile, fieldnames=headers, delimiter=';', lineterminator='\r\n')
+            writer = csv.DictWriter(csvfile, fieldnames=headers, delimiter=';', lineterminator='\r')
 
             if not file_exists:
                 writer.writeheader()  # file doesn't exist yet, write a header
 
             writer.writerow(metrics | train_settings)
 
-    def restore_model(self, file: str):
-        self.model = load_model(file, custom_objects={'contrast_function': DistanceLayer})
+    def restore(self):
+        self.model = load_model(self.config['paths']['restore_model'],
+                                custom_objects={'contrast_function': DistanceLayer})
         print(self.model.summary())
         plot_model(self.model, to_file=os.path.join(self.logdir, "model_restored.png"), show_shapes=True,
                    show_layer_names=True,

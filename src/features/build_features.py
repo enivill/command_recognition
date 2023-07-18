@@ -9,8 +9,6 @@ from sklearn.preprocessing import StandardScaler
 import os
 
 
-# TODO
-#  do the same for stft and mfcc
 def mel(y: np.ndarray, sr: float) -> np.ndarray:
     config = my_config.get_config()['feature_extraction']
 
@@ -75,31 +73,41 @@ def stft(y: np.ndarray):
     return y_fourier_decibel
 
 
-# TODO
-#  so maybe i do a little change in here. We use the dictionary to avoid duplicate extractions. But we put every duplicates in the list
-#  so it's taking up space needlessly. Maybe we should leave just the dictionary and return that.
-def feature_extraction_dataset(feature_type: str, data: np.ndarray, root: str, sample_rate: int) -> np.ndarray:
-    features = []
-    audio_feature_dict = {}
 
-    for file in tqdm(data):
-        if file not in audio_feature_dict:
-            y, sr = load_audio(os.path.join(root, file), sample_rate)
-            if feature_type == 'mel':
-                audio_feature_dict[file] = mel(y, sr)
-            elif feature_type == 'stft':
-                audio_feature_dict[file] = mel(y, sr)
-            else:  # mfcc
-                audio_feature_dict[file] = mfcc(y, sr)
-        features.append(audio_feature_dict[file])
+def feature_extraction_dataset():
+    """
+    Doing feature extraction on the whole dataset, saves data as .npy file to config['paths']['features_path']/word/filename
+    you must specify the feature_type variable in config file.
+    """
+    config = my_config.get_config()
 
-    return np.array(features, dtype=object)
+    if not os.path.exists(config['paths']['features_path']):
+        os.mkdir(config['paths']['features_path'])
+
+    for dirs in os.scandir(config['paths']['raw_data_root']):
+        if dirs.is_dir() and dirs.name != "_background_noise_":
+            print(f"Class: {dirs.name}")
+            for file in tqdm(os.listdir(dirs)):
+                file_path = f"{dirs.name}/{file}"
+                feature = feature_extraction(file_path)
+                path_split = os.path.split(file_path)
+                file_name = os.path.splitext(path_split[-1])[0]
+                path_a = os.path.join(config['paths']['features_path'], path_split[0])
+                if not os.path.exists(path_a):
+                    os.mkdir(path_a)
+                np.save(os.path.join(path_a, file_name), feature)
 
 
 def feature_extraction(file: str) -> np.ndarray:
+    """
+    Extracts features from audio file
+    features types can be: mel, stft, mfcc
+    you must specify the feature type in the config file
+    """
     config = my_config.get_config()
 
-    y, sr = load_audio(os.path.join(config['paths']['raw_data_root'], file), config['feature_extraction']['sample_rate'])
+    y, sr = load_audio(os.path.join(config['paths']['raw_data_root'], file),
+                       config['feature_extraction']['sample_rate'])
     if config['train']['feature_type'] == 'mel':
         audio_feature = mel(y, sr)
     elif config['train']['feature_type'] == 'stft':
@@ -139,7 +147,6 @@ def load_audio(data_path: str, sr: int) -> (np.ndarray, float):
     return y, sr
 
 
-# TODO you can delete this, I just used it for testing
 def plot_audio(y: np.ndarray, label: float, sr: float):
     """
     plot the audio wave
@@ -153,7 +160,7 @@ def plot_audio(y: np.ndarray, label: float, sr: float):
     plt.show()
 
 
-def plot_mel(y: np.ndarray):
+def plot_mel(y: np.ndarray) -> None:
     config = my_config.get_config()['feature_extraction']
     n_fft, window_length, hop_length = calculate_nfft_wl_hl()
 
@@ -165,16 +172,19 @@ def plot_mel(y: np.ndarray):
         hop_length=hop_length,
         n_fft=n_fft,
         win_length=window_length,
-        x_axis='time',
+        fmin=config['f_min'],
+        fmax=config['f_max'],
+        x_axis='frames',
         y_axis='mel'
     )
-    title = f"sr{config['sample_rate']}_hl{hop_length}_nfft{n_fft}_wl{window_length}_mels{config['n_mels']}_fmin{config['f_min']}_fmax{config['f_max']}_w{y.shape[1]}_h{y.shape[0]}"
-    plt.title(title)
-    save_path = 'reports/figures/mel_spectrograms/'
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
-    plt.savefig(f"{save_path}{title}.png")
-    plt.close(fig)
+    plt.show()
+    # title = f"sr{config['sample_rate']}_hl{hop_length}_nfft{n_fft}_wl{window_length}_mels{config['n_mels']}_fmin{config['f_min']}_fmax{config['f_max']}_w{y.shape[1]}_h{y.shape[0]}"
+    # plt.title(title)
+    # save_path = 'reports/figures/mel_spectrograms/'
+    # if not os.path.exists(save_path):
+    #     os.mkdir(save_path)
+    # plt.savefig(f"{save_path}{title}.png")
+    # plt.close(fig)
 
 
 def plot_mfcc(mfccs: np.ndarray, norm: bool = False):
@@ -234,7 +244,7 @@ def plot_stft(y: np.ndarray):
     plt.close(fig)
 
 
-def calculate_nfft_wl_hl():
+def calculate_nfft_wl_hl() -> (int, int, int):
     """
     Calculates the n_fft, window_length and hop_length from given wl and hl values in seconds and the sample rate.
     :return:
@@ -253,7 +263,7 @@ def calculate_nfft_wl_hl():
 
 def next_power_of_2(x: int):
     """
-    Find the smallest power of 2 greater than or equal to x
+    Finds the smallest power of 2 greater than or equal to x
     :param x:
     :return:
     """

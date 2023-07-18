@@ -1,0 +1,15 @@
+paths:
+  raw_data_root: data/external/speech_commands_v0.02/
+  features_path: data/features/mel26_wl20_hl10_fmin300_fmax4000_sr16000/
+
+feature_extraction:
+  sample_rate: 16000
+  window_length_seconds: 20
+  hop_length_seconds: 10
+  n_mels: 26
+  f_min: 300
+  f_max: 4000
+
+train:
+  feature_type: mel
+
