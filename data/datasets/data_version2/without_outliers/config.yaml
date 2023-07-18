@@ -1,0 +1,63 @@
+make_pairs:
+  excluded_classes:
+    test:
+    - dog
+    - wow
+    - house
+    - marvin
+    - bird
+    - happy
+    - cat
+    - sheila
+    - bed
+    - tree
+    train:
+    - dog
+    - wow
+    - house
+    - marvin
+    - bird
+    - happy
+    - cat
+    - sheila
+    - bed
+    - tree
+    val:
+    - dog
+    - wow
+    - house
+    - marvin
+    - bird
+    - happy
+    - cat
+    - sheila
+    - bed
+    - tree
+  order:
+  - train
+  - val
+  - test
+  percentage:
+    test: 10
+    train: 70
+    val: 20
+  word_per_class_train: 500
+paths:
+  dataset_name:
+    test: test.txt
+    train: train.txt
+    val: val.txt
+  dataset_root: data/datasets/data_version2/without_outliers/
+  pairs_name:
+    test: test_pairs.csv
+    train: train_pairs.csv
+    val: val_pairs.csv
+  pairs_root: data/pairs/data_version2/without_outliers_w500/
+  raw_data_root: data/external/speech_commands_v0.02/
+split:
+  delete_outlier: true
+  duration_limit: 1.0
+  percentage:
+    test: 10
+    train: 70
+    val: 20
